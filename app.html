@@ -513,6 +513,7 @@ const TreeApp = {
     dragNodeStart: { x: 0, y: 0 },
     activeTab: 'node',
     sensNid: null,
+    pendingExport: null,
     sty: { bg: '#F6F3EE', edge: '#CCCCCC', ew: 2, hi: '#1E7A45', nc: '#1E1E22', tc: '#FFFFFF', shape: 'round', fs: 13 }
   }
 };
@@ -878,7 +879,7 @@ function exportPNG(){
 // PRO MODAL
 let pendingExport=null;
 function showProModal(type){
-  pendingExport=type;
+  S.pendingExport=type;
   const descs={
     pdf:'Export your decision tree as a pixel-perfect, print-ready PDF — ideal for client reports, investment memos, and board presentations.',
     svg:'Export as a fully editable SVG file, compatible with Figma, Illustrator, and PowerPoint. Scale infinitely without quality loss.'
