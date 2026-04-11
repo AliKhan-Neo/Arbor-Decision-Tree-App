@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arbor — Decision Tree Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#1E7A45;--primary-light:#2a9a5a;--primary-dim:#164d31;
+  --ink:#08080A;--ink-2:#141416;--ink-3:#1E1E22;--ink-4:#2A2A30;
+  --surface:#F6F3EE;--surface-2:#EDEAE2;--surface-3:#E0DDD5;
+  --white:#FFFFFF;
+  --green:#1A7A4A;--green-bg:#D6F0E0;
+  --red:#B0392B;--red-bg:#FAE0DD;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.15);
+  --primary-border:rgba(30,122,69,0.35);
+  --panel:280px;--hdr:56px;
+  --serif:'Cormorant Garamond',serif;
+  --sans:'Syne',sans-serif;
+  --mono:'DM Mono',monospace;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--sans);background:var(--surface);color:var(--ink);display:flex;flex-direction:column}
+
+/* ── HEADER ── */
+header{
+  height:var(--hdr);flex-shrink:0;
+  background:var(--ink);
+  display:flex;align-items:center;padding:0 16px;gap:12px;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.logo{
+  font-size:15px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;color:var(--primary);
+  text-decoration:none;
+}
+.logo-sep{width:1px;height:20px;background:rgba(255,255,255,0.1);margin:0 4px}
+.header-stats{display:flex;gap:0;margin:0 8px}
+.hstat{
+  display:flex;flex-direction:column;align-items:center;
+  padding:0 14px;border-right:1px solid rgba(255,255,255,0.07);
+}
+.hstat:first-child{border-left:1px solid rgba(255,255,255,0.07)}
+.hstat-l{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.28);font-family:var(--mono)}
+.hstat-v{font-size:14px;font-weight:500;color:var(--primary);font-family:var(--mono)}
+.spacer{flex:1}
+.hbtn{
+  height:30px;padding:0 12px;border-radius:4px;
+  border:1px solid rgba(255,255,255,0.12);background:transparent;
+  color:rgba(255,255,255,0.6);font-family:var(--sans);font-size:11px;font-weight:600;
+  letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;
+  display:flex;align-items:center;gap:5px;transition:all 0.15s;text-decoration:none;
+}
+.hbtn:hover{background:rgba(255,255,255,0.07);color:white;border-color:rgba(255,255,255,0.2)}
+.hbtn.gold{background:var(--primary);border-color:var(--primary);color:var(--ink)}
+.hbtn.gold:hover{background:var(--primary-light)}
+.hbtn.pro-lock{border-color:rgba(30,122,69,0.3);color:var(--primary)}
+.hbtn.pro-lock:hover{background:rgba(30,122,69,0.08)}
+
+/* ── BODY ── */
+.app-body{flex:1;display:flex;overflow:hidden}
+
+/* ── CANVAS ── */
+.cv-wrap{flex:1;position:relative;overflow:hidden}
+canvas{position:absolute;top:0;left:0;width:100%;height:100%}
+
+.empty-state{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;pointer-events:none;
+}
+.empty-icon{
+  width:64px;height:64px;border-radius:12px;border:1px dashed rgba(0,0,0,0.15);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 16px;
+  font-size:24px;opacity:0.3;
+}
+.empty-text{font-size:13px;color:rgba(0,0,0,0.3);line-height:1.6}
+
+.cv-hints{position:absolute;bottom:14px;left:14px;display:flex;gap:6px;flex-wrap:wrap}
+.hint{
+  background:rgba(0,0,0,0.055);border:1px solid rgba(0,0,0,0.08);
+  border-radius:20px;padding:4px 10px;
+  font-size:10px;color:rgba(0,0,0,0.4);font-family:var(--mono);letter-spacing:0.04em;
+}
+
+/* ── PANEL ── */
+.panel{
+  width:var(--panel);flex-shrink:0;
+  background:var(--white);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.ptabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.ptab{
+  flex:1;padding:10px 0;text-align:center;cursor:pointer;
+  font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+  color:rgba(0,0,0,0.35);border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:all 0.15s;
+}
+.ptab.on{color:var(--primary-dim);border-color:var(--primary)}
+.pcontent{flex:1;overflow-y:auto;padding:14px}
+.pcontent::-webkit-scrollbar{width:3px}
+.pcontent::-webkit-scrollbar-thumb{background:var(--surface-3);border-radius:2px}
+
+/* form */
+.f{margin-bottom:12px}
+.f label{display:block;font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(0,0,0,0.4);margin-bottom:4px}
+.f input[type=text],.f input[type=number],.f select{
+  width:100%;height:32px;padding:0 9px;
+  border:1px solid var(--surface-3);border-radius:5px;
+  font-family:var(--sans);font-size:12px;color:var(--ink);
+  background:var(--surface);outline:none;transition:border-color 0.15s;
+}
+.f input:focus,.f select:focus{border-color:var(--primary);background:var(--white)}
+.f input[type=color]{width:100%;height:32px;padding:2px;border:1px solid var(--surface-3);border-radius:5px;cursor:pointer;background:var(--surface)}
+.frow{display:flex;gap:7px}.frow .f{flex:1}
+
+.stitle{
+  font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+  color:rgba(0,0,0,0.35);margin:16px 0 8px;
+  padding-top:12px;border-top:1px solid var(--surface-2);
+}
+.stitle:first-child{margin-top:0;border-top:none;padding-top:0}
+
+.btn{
+  width:100%;height:33px;border-radius:5px;
+  border:1px solid var(--surface-3);background:var(--surface);
+  font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:0.04em;
+  color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;
+  margin-bottom:6px;transition:all 0.15s;
+}
+.btn:hover{background:var(--surface-2)}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:var(--ink)}
+.btn.pri:hover{background:var(--primary-dim);color:white}
+.btn.del{background:var(--red-bg);border-color:#E8B0AA;color:var(--red)}
+.btn.del:hover{background:#F5C8C3}
+
+/* node info box */
+.nbox{background:var(--surface);border:1px solid var(--surface-3);border-radius:7px;padding:10px 12px;margin-bottom:10px}
+.nbox-name{font-size:13px;font-weight:600}
+.nbox-meta{font-size:10px;color:rgba(0,0,0,0.4);font-family:var(--mono);margin-top:2px}
+
+/* result cards */
+.rcard{background:var(--surface);border:1px solid var(--surface-3);border-radius:7px;padding:11px 13px;margin-bottom:8px}
+.rcard.best{background:#FFFBEC;border-color:var(--primary-border)}
+.rcard-l{font-size:9px;font-weight:700;letter-spacing:0.11em;text-transform:uppercase;color:rgba(0,0,0,0.38);margin-bottom:3px}
+.rcard-v{font-size:20px;font-weight:700;color:var(--ink);font-family:var(--mono)}
+.rcard-v.gold{color:var(--primary-dim)}
+.rcard-s{font-size:10px;color:rgba(0,0,0,0.38);font-family:var(--mono);margin-top:1px}
+
+.path-step{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--surface-2);font-size:11px}
+.path-step:last-child{border-bottom:none}
+.pdot{width:7px;height:7px;border-radius:50%;background:var(--primary);flex-shrink:0}
+.pname{font-weight:600;color:var(--ink)}
+.pprob{margin-left:auto;font-family:var(--mono);font-size:10px;color:rgba(0,0,0,0.38)}
+
+/* sensitivity */
+.slrow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sllabel{font-size:11px;font-family:var(--mono);min-width:38px;color:var(--ink)}
+input[type=range]{
+  flex:1;height:3px;border-radius:2px;background:var(--surface-3);
+  outline:none;-webkit-appearance:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--primary);border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.2);
+}
+.sens-out{
+  background:var(--surface);border:1px solid var(--surface-3);border-radius:5px;
+  padding:8px;font-family:var(--mono);font-size:13px;color:var(--primary-dim);
+  font-weight:500;text-align:center;margin-top:6px;
+}
+
+/* PRO MODAL */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(8,8,10,0.75);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;backdrop-filter:blur(6px);
+  opacity:0;pointer-events:none;transition:opacity 0.2s;
+}
+.modal-overlay.show{opacity:1;pointer-events:all}
+.modal{
+  background:var(--ink-2);border:1px solid rgba(255,255,255,0.1);
+  border-radius:12px;padding:40px;max-width:420px;width:90%;
+  text-align:center;transform:translateY(16px);transition:transform 0.25s;
+}
+.modal-overlay.show .modal{transform:translateY(0)}
+.modal-eyebrow{
+  font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--primary);margin-bottom:16px;
+}
+.modal-title{
+  font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:500;
+  color:var(--white);line-height:1.1;margin-bottom:12px;
+}
+.modal-title em{font-style:italic;color:var(--primary)}
+.modal-desc{
+  font-family:var(--serif);font-size:15px;color:rgba(255,255,255,0.55);
+  line-height:1.65;margin-bottom:28px;
+}
+.modal-features{list-style:none;margin-bottom:28px;text-align:left}
+.modal-features li{
+  font-family:var(--sans);font-size:13px;color:rgba(255,255,255,0.7);
+  padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.07);
+  display:flex;align-items:center;gap:10px;
+}
+.modal-features li:last-child{border-bottom:none}
+.modal-features li::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--primary);flex-shrink:0}
+.modal-price{
+  font-family:var(--mono);font-size:36px;color:white;margin-bottom:4px;
+}
+.modal-period{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,0.3);margin-bottom:24px}
+.modal-cta{
+  width:100%;height:48px;border-radius:6px;
+  background:var(--primary);border:none;color:var(--ink);
+  font-family:var(--sans);font-size:13px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;
+  cursor:pointer;margin-bottom:10px;transition:background 0.15s;
+}
+.modal-cta:hover{background:var(--primary-light)}
+.modal-dismiss{
+  font-size:12px;color:rgba(255,255,255,0.25);cursor:pointer;font-family:var(--mono);
+  transition:color 0.15s;
+}
+.modal-dismiss:hover{color:rgba(255,255,255,0.5)}
+
+/* tooltip */
+.tt{
+  position:fixed;background:var(--ink);color:white;
+  padding:5px 9px;border-radius:5px;font-size:11px;font-family:var(--mono);
+  pointer-events:none;opacity:0;transition:opacity 0.1s;z-index:100;white-space:nowrap;
+}
+.tt.show{opacity:1}
+
+/* divider */
+.div{height:1px;background:var(--surface-2);margin:6px 0}
+
+/* no-sel */
+.nosel{text-align:center;padding:36px 0}
+.nosel-icon{font-size:24px;opacity:0.12;margin-bottom:8px}
+.nosel-text{font-size:11px;color:rgba(0,0,0,0.3)}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">Arbor</a>
+  <div class="logo-sep"></div>
+  <div class="header-stats">
+    <div class="hstat">
+      <span class="hstat-l">Expected Value</span>
+      <span class="hstat-v" id="h-ev">—</span>
+    </div>
+    <div class="hstat">
+      <span class="hstat-l">Best Path</span>
+      <span class="hstat-v" id="h-best">—</span>
+    </div>
+    <div class="hstat">
+      <span class="hstat-l">Nodes</span>
+      <span class="hstat-v" id="h-nodes">0</span>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="hbtn" onclick="resetAll()">Reset</button>
+  <button class="hbtn" onclick="exportPNG()">PNG Export</button>
+  <button class="hbtn pro-lock" onclick="showProModal('pdf')">⬡ PDF Pro</button>
+  <button class="hbtn pro-lock" onclick="showProModal('svg')">⬡ SVG Pro</button>
+  <button class="hbtn" onclick="autoLayout()">Auto Layout</button>
+  <button class="hbtn gold" onclick="addRoot()">+ New Tree</button>
+</header>
+
+<div class="app-body">
+  <div class="cv-wrap" id="cvwrap">
+    <canvas id="cv"></canvas>
+    <div class="empty-state" id="empty">
+      <div class="empty-icon">⬡</div>
+      <div class="empty-text">Click <strong>+ New Tree</strong> to begin<br>or select a node to edit it</div>
+    </div>
+    <div class="cv-hints">
+      <div class="hint">click to select</div>
+      <div class="hint">drag node to move</div>
+      <div class="hint">drag canvas to pan</div>
+      <div class="hint">scroll to zoom</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ptabs">
+      <div class="ptab on" id="t-node" onclick="tab('node')">Node</div>
+      <div class="ptab" id="t-results" onclick="tab('results')">Results</div>
+      <div class="ptab" id="t-style" onclick="tab('style')">Style</div>
+      <div class="ptab" id="t-sens" onclick="tab('sens')">Sens.</div>
+    </div>
+
+    <!-- NODE -->
+    <div class="pcontent" id="p-node">
+      <div class="nosel" id="nosel"><div class="nosel-icon">◎</div><div class="nosel-text">Select a node to edit it</div></div>
+      <div id="neditor" style="display:none">
+        <div class="nbox">
+          <div class="nbox-name" id="ne-name">Node</div>
+          <div class="nbox-meta" id="ne-cumprob">Cumulative: 100.00%</div>
+        </div>
+        <div class="f"><label>Label</label><input type="text" id="ne-label" oninput="upd('label',this.value)" placeholder="e.g. Project Approved"></div>
+        <div class="frow">
+          <div class="f"><label>Probability (%)</label><input type="number" id="ne-prob" oninput="upd('prob',this.value)" min="0" max="100" step="1" placeholder="60"></div>
+          <div class="f"><label>Currency</label>
+            <select id="ne-cur" onchange="upd('currency',this.value)">
+              <option value="$">$ USD</option>
+              <option value="A$">A$ AUD</option>
+              <option value="£">£ GBP</option>
+              <option value="€">€ EUR</option>
+              <option value="¥">¥ JPY</option>
+            </select>
+          </div>
+        </div>
+        <div class="f"><label>NPV / Value (optional)</label><input type="number" id="ne-npv" oninput="upd('npv',this.value)" placeholder="e.g. 4200000" step="any"></div>
+        <div class="frow">
+          <div class="f"><label>Node Colour</label><input type="color" id="ne-col" oninput="upd('color',this.value)" value="#1E1E22"></div>
+          <div class="f"><label>Text Colour</label><input type="color" id="ne-tcol" oninput="upd('tcolor',this.value)" value="#FFFFFF"></div>
+        </div>
+        <div class="f"><label>Node Type</label>
+          <select id="ne-type" onchange="upd('type',this.value)">
+            <option value="decision">Decision ◆</option>
+            <option value="chance">Chance ◎</option>
+            <option value="terminal">Terminal ●</option>
+          </select>
+        </div>
+        <div class="div"></div>
+        <button class="btn pri" onclick="addChild()">+ Add Child Node</button>
+        <button class="btn" onclick="dupNode()">Duplicate</button>
+        <button class="btn del" onclick="delNode()">Delete Node + Children</button>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="pcontent" id="p-results" style="display:none">
+      <div class="stitle" style="margin-top:0;border-top:none;padding-top:0">Tree Summary</div>
+      <div class="rcard best">
+        <div class="rcard-l">Expected Value (Root)</div>
+        <div class="rcard-v gold" id="r-ev">—</div>
+        <div class="rcard-s">probability-weighted NPV</div>
+      </div>
+      <div class="rcard">
+        <div class="rcard-l">Best Path EV</div>
+        <div class="rcard-v" id="r-bev">—</div>
+        <div class="rcard-s" id="r-bprob">—</div>
+      </div>
+      <div class="rcard">
+        <div class="rcard-l">Worst Path EV</div>
+        <div class="rcard-v" id="r-wev">—</div>
+        <div class="rcard-s" id="r-wprob">—</div>
+      </div>
+      <div class="stitle">Best Path Breakdown</div>
+      <div id="r-steps"></div>
+    </div>
+
+    <!-- STYLE -->
+    <div class="pcontent" id="p-style" style="display:none">
+      <div class="stitle" style="margin-top:0;border-top:none;padding-top:0">Canvas</div>
+      <div class="f"><label>Background</label><input type="color" id="s-bg" value="#F6F3EE" oninput="applyStyle()"></div>
+      <div class="stitle">Edges</div>
+      <div class="frow">
+        <div class="f"><label>Edge Colour</label><input type="color" id="s-edge" value="#CCCCCC" oninput="applyStyle()"></div>
+        <div class="f"><label>Edge Width</label>
+          <select id="s-ew" onchange="applyStyle()">
+            <option value="1.5">Thin</option>
+            <option value="2" selected>Medium</option>
+            <option value="3">Thick</option>
+          </select>
+        </div>
+      </div>
+      <div class="f"><label>Best Path Colour</label><input type="color" id="s-hi" value="#1E7A45" oninput="applyStyle()"></div>
+      <div class="stitle">Nodes</div>
+      <div class="frow">
+        <div class="f"><label>Default Fill</label><input type="color" id="s-nc" value="#1E1E22" oninput="applyStyle()"></div>
+        <div class="f"><label>Default Text</label><input type="color" id="s-tc" value="#FFFFFF" oninput="applyStyle()"></div>
+      </div>
+      <div class="f"><label>Shape</label>
+        <select id="s-shape" onchange="applyStyle()">
+          <option value="rect">Rectangle</option>
+          <option value="round" selected>Rounded</option>
+          <option value="pill">Pill</option>
+        </select>
+      </div>
+      <div class="f"><label>Font Size</label>
+        <select id="s-fs" onchange="applyStyle()">
+          <option value="11">Small</option>
+          <option value="13" selected>Medium</option>
+          <option value="15">Large</option>
+        </select>
+      </div>
+      <div class="div"></div>
+      <button class="btn" onclick="applyToAll()">Apply Colours to All Nodes</button>
+      <button class="btn" onclick="autoLayout()">Auto Re-layout</button>
+    </div>
+
+    <!-- SENS -->
+    <div class="pcontent" id="p-sens" style="display:none">
+      <div class="stitle" style="margin-top:0;border-top:none;padding-top:0">Sensitivity Analysis</div>
+      <div style="font-size:11px;color:rgba(0,0,0,0.4);font-family:var(--serif);line-height:1.6;margin-bottom:12px">
+        Select a node, then sweep its probability to see real-time impact on Expected Value.
+      </div>
+      <div id="s-nonode" style="font-size:11px;color:rgba(0,0,0,0.3);font-style:italic">Select a node first.</div>
+      <div id="s-ctrl" style="display:none">
+        <div class="rcard" style="margin-bottom:10px">
+          <div class="rcard-l">Adjusting Node</div>
+          <div class="nbox-name" id="s-nname">—</div>
+        </div>
+        <div class="f"><label>Probability Sweep</label></div>
+        <div class="slrow">
+          <span class="sllabel" id="s-pval">50%</span>
+          <input type="range" min="0" max="100" value="50" id="s-slider" oninput="runSens(this.value)">
+        </div>
+        <div class="sens-out" id="s-evout">EV: —</div>
+        <div style="margin-top:14px">
+          <div class="rcard-l" style="margin-bottom:6px">EV Across 0–100%</div>
+          <div id="s-bars" style="display:flex;gap:3px;align-items:flex-end;height:56px;"></div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(0,0,0,0.3);font-family:var(--mono);margin-top:3px">
+            <span>0%</span><span>50%</span><span>100%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRO MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-eyebrow">Arbor Pro</div>
+    <div class="modal-title">Unlock <em>professional</em><br>export formats.</div>
+    <div class="modal-desc" id="modal-desc">Export your decision trees as pixel-perfect PDFs for client reports and presentations.</div>
+    <ul class="modal-features">
+      <li>PDF export — print-ready, high resolution</li>
+      <li>SVG export — fully editable in Illustrator / Figma</li>
+      <li>Save &amp; load tree files</li>
+      <li>Branded report output</li>
+      <li>Multiple trees per session</li>
+      <li>Priority support</li>
+    </ul>
+    <div class="modal-price">$19</div>
+    <div class="modal-period">per month — cancel any time</div>
+    <button class="modal-cta" onclick="joinWaitlist()">Join the Waitlist</button>
+    <div class="modal-dismiss" onclick="closeModal()">No thanks, continue with Free</div>
+  </div>
+</div>
+
+<div class="tt" id="tt"></div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+let nodes=[], edges=[], sel=null, nid=1;
+let pan={x:0,y:0}, zoom=1;
+let dragging=false, dragStart={x:0,y:0}, panStart={x:0,y:0};
+let dragNode=null, dragNodeStart={x:0,y:0};
+let activeTab='node', sensNid=null;
+let sty={bg:'#F6F3EE',edge:'#CCCCCC',ew:2,hi:'#1E7A45',nc:'#1E1E22',tc:'#FFFFFF',shape:'round',fs:13};
+
+const NW=164, NH=50;
+
+function resize(){
+  const w=document.getElementById('cvwrap');
+  cv.width=w.clientWidth; cv.height=w.clientHeight; draw();
+}
+window.addEventListener('resize',resize);
+
+function s2w(x,y){return{x:(x-pan.x)/zoom,y:(y-pan.y)/zoom}}
+function w2s(x,y){return{x:x*zoom+pan.x,y:y*zoom+pan.y}}
+
+function nodeAt(sx,sy){
+  for(let i=nodes.length-1;i>=0;i--){
+    const n=nodes[i],s=w2s(n.x,n.y);
+    if(Math.abs(sx-s.x)<(NW/2)*zoom && Math.abs(sy-s.y)<(NH/2)*zoom) return n;
+  }
+  return null;
+}
+
+cv.addEventListener('mousedown',e=>{
+  const r=cv.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;
+  const h=nodeAt(sx,sy);
+  if(h){dragNode=h;dragNodeStart={x:h.x,y:h.y};dragStart={x:e.clientX,y:e.clientY};selectNode(h.id)}
+  else{dragging=true;dragStart={x:e.clientX,y:e.clientY};panStart={x:pan.x,y:pan.y}}
+});
+cv.addEventListener('mousemove',e=>{
+  const r=cv.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;
+  const dx=e.clientX-dragStart.x,dy=e.clientY-dragStart.y;
+  if(dragNode){dragNode.x=dragNodeStart.x+dx/zoom;dragNode.y=dragNodeStart.y+dy/zoom;draw()}
+  else if(dragging){pan.x=panStart.x+dx;pan.y=panStart.y+dy;draw()}
+  const h=nodeAt(sx,sy);showTT(h,e.clientX,e.clientY);
+});
+cv.addEventListener('mouseup',()=>{dragging=false;dragNode=null});
+cv.addEventListener('mouseleave',()=>{dragging=false;dragNode=null;hideTT()});
+cv.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const r=cv.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;
+  const f=e.deltaY<0?1.1:0.9;
+  const nz=Math.max(0.15,Math.min(3,zoom*f));
+  pan.x=sx-(sx-pan.x)*(nz/zoom); pan.y=sy-(sy-pan.y)*(nz/zoom);
+  zoom=nz; draw();
+},{passive:false});
+
+function showTT(n,cx,cy){
+  const t=document.getElementById('tt');
+  if(!n){t.classList.remove('show');return}
+  const ev=getNodeEV(n);
+  t.textContent=`${n.label}  P:${n.prob}%  EV:${fmt(ev,n.currency||'$')}`;
+  t.style.left=(cx+12)+'px';t.style.top=(cy-8)+'px';t.classList.add('show');
+}
+function hideTT(){document.getElementById('tt').classList.remove('show')}
+
+function addRoot(){
+  const w=s2w(cv.width/2,cv.height/2);
+  const n={id:nid++,label:'Decision',x:w.x,y:w.y,prob:100,npv:null,color:sty.nc,tcolor:sty.tc,type:'decision',currency:'$',parentId:null};
+  nodes.push(n); document.getElementById('empty').style.display='none';
+  selectNode(n.id); draw();
+}
+
+function addChild(){
+  if(!sel)return;
+  const p=nodes.find(n=>n.id===sel);if(!p)return;
+  const kids=nodes.filter(n=>n.parentId===sel);
+  const n={id:nid++,label:'Outcome',x:p.x+200,y:p.y+(kids.length-0)*80,
+    prob:50,npv:null,color:p.color,tcolor:p.tcolor,type:'chance',currency:p.currency||'$',parentId:sel};
+  nodes.push(n);edges.push({from:sel,to:n.id});
+  selectNode(n.id);autoLayout();draw();
+}
+
+function dupNode(){
+  if(!sel)return;
+  const o=nodes.find(n=>n.id===sel);if(!o)return;
+  const n={...o,id:nid++,x:o.x+20,y:o.y+20};
+  nodes.push(n);if(o.parentId)edges.push({from:o.parentId,to:n.id});
+  selectNode(n.id);draw();
+}
+
+function delNode(){
+  if(!sel)return;
+  const del=[sel];
+  function desc(pid){nodes.filter(n=>n.parentId===pid).forEach(n=>{del.push(n.id);desc(n.id)})}
+  desc(sel);
+  nodes=nodes.filter(n=>!del.includes(n.id));
+  edges=edges.filter(e=>!del.includes(e.from)&&!del.includes(e.to));
+  sel=null; if(!nodes.length)document.getElementById('empty').style.display='';
+  updatePanel();draw();
+}
+
+function selectNode(id){sel=id;sensNid=id;updatePanel();draw()}
+
+function upd(field,val){
+  const n=nodes.find(n=>n.id===sel);if(!n)return;
+  if(field==='prob')n.prob=parseFloat(val)||0;
+  else if(field==='npv')n.npv=val===''?null:parseFloat(val);
+  else if(field==='label')n.label=val;
+  else if(field==='color')n.color=val;
+  else if(field==='tcolor')n.tcolor=val;
+  else if(field==='type')n.type=val;
+  else if(field==='currency')n.currency=val;
+  updatePanel();draw();
+}
+
+function cumProb(id){
+  const n=nodes.find(n=>n.id===id);
+  if(!n||!n.parentId)return 1;
+  return(n.prob/100)*cumProb(n.parentId);
+}
+
+function leaves(id){
+  const kids=nodes.filter(n=>n.parentId===id);
+  if(!kids.length)return[nodes.find(n=>n.id===id)].filter(Boolean);
+  return kids.flatMap(c=>leaves(c.id));
+}
+
+function getNodeEV(n){
+  return leaves(n.id).reduce((s,l)=>l.npv===null?s:s+(l.npv*cumProb(l.id)),0);
+}
+
+function allPaths(id,cur){
+  const n=nodes.find(n=>n.id===id);if(!n)return[];
+  const p=[...cur,n];
+  const kids=nodes.filter(c=>c.parentId===id);
+  if(!kids.length)return[p];
+  return kids.flatMap(c=>allPaths(c.id,p));
+}
+
+function pathEV(path){
+  const l=path[path.length-1];
+  if(l.npv===null)return null;
+  return l.npv*cumProb(l.id);
+}
+
+function bestPath(){
+  const roots=nodes.filter(n=>!n.parentId);if(!roots.length)return[];
+  const paths=allPaths(roots[0].id,[]);
+  const w=paths.map(p=>({path:p,ev:pathEV(p)})).filter(p=>p.ev!==null);
+  if(!w.length)return[];
+  w.sort((a,b)=>b.ev-a.ev);
+  return w[0].path.map(n=>n.id);
+}
+
+function fmt(v,cur){
+  if(isNaN(v)||v===null)return'—';
+  const a=Math.abs(v);let s;
+  if(a>=1e9)s=(v/1e9).toFixed(2)+'B';
+  else if(a>=1e6)s=(v/1e6).toFixed(2)+'M';
+  else if(a>=1e3)s=(v/1e3).toFixed(1)+'K';
+  else s=v.toFixed(0);
+  return(cur||'$')+s;
+}
+
+function updatePanel(){
+  const n=nodes.find(n=>n.id===sel);
+  document.getElementById('nosel').style.display=n?'none':'';
+  document.getElementById('neditor').style.display=n?'':'none';
+  if(n){
+    document.getElementById('ne-label').value=n.label;
+    document.getElementById('ne-prob').value=n.prob;
+    document.getElementById('ne-npv').value=n.npv!==null?n.npv:'';
+    document.getElementById('ne-col').value=n.color||sty.nc;
+    document.getElementById('ne-tcol').value=n.tcolor||sty.tc;
+    document.getElementById('ne-type').value=n.type;
+    document.getElementById('ne-cur').value=n.currency||'$';
+    document.getElementById('ne-name').textContent=n.label;
+    document.getElementById('ne-cumprob').textContent='Cumulative: '+(cumProb(n.id)*100).toFixed(2)+'%';
+  }
+  updateResults();
+  if(activeTab==='sens')updateSens();
+}
+
+function updateResults(){
+  const roots=nodes.filter(n=>!n.parentId);
+  if(!roots.length){['r-ev','r-bev','r-wev','h-ev','h-best'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—'});return}
+  const root=roots[0],ev=getNodeEV(root),cur=root.currency||'$';
+  document.getElementById('r-ev').textContent=fmt(ev,cur);
+  document.getElementById('h-ev').textContent=fmt(ev,cur);
+  document.getElementById('h-nodes').textContent=nodes.length;
+  const paths=allPaths(root.id,[]).map(p=>({path:p,ev:pathEV(p)})).filter(p=>p.ev!==null);
+  paths.sort((a,b)=>b.ev-a.ev);
+  if(paths.length){
+    const b=paths[0],w=paths[paths.length-1];
+    document.getElementById('r-bev').textContent=fmt(b.ev,cur);
+    document.getElementById('h-best').textContent=fmt(b.ev,cur);
+    document.getElementById('r-bprob').textContent='prob: '+(cumProb(b.path[b.path.length-1].id)*100).toFixed(1)+'%';
+    document.getElementById('r-wev').textContent=fmt(w.ev,cur);
+    document.getElementById('r-wprob').textContent='prob: '+(cumProb(w.path[w.path.length-1].id)*100).toFixed(1)+'%';
+    document.getElementById('r-steps').innerHTML=b.path.map(n=>`<div class="path-step"><div class="pdot"></div><div class="pname">${n.label}</div><div class="pprob">${n.prob}%</div></div>`).join('');
+  }
+}
+
+function applyStyle(){
+  sty.bg=document.getElementById('s-bg').value;
+  sty.edge=document.getElementById('s-edge').value;
+  sty.ew=parseFloat(document.getElementById('s-ew').value);
+  sty.hi=document.getElementById('s-hi').value;
+  sty.nc=document.getElementById('s-nc').value;
+  sty.tc=document.getElementById('s-tc').value;
+  sty.shape=document.getElementById('s-shape').value;
+  sty.fs=parseInt(document.getElementById('s-fs').value);
+  draw();
+}
+function applyToAll(){applyStyle();nodes.forEach(n=>{n.color=sty.nc;n.tcolor=sty.tc});draw()}
+
+function autoLayout(){
+  const roots=nodes.filter(n=>!n.parentId);if(!roots.length)return;
+  function layout(id,depth){
+    const kids=nodes.filter(c=>c.parentId===id);if(!kids.length)return;
+    const n=nodes.find(n=>n.id===id);
+    const span=(kids.length-1)*90;
+    kids.forEach((c,i)=>{
+      c.x=n.x+200;
+      c.y=n.y-span/2+i*90;
+      layout(c.id,depth+1);
+    });
+  }
+  roots.forEach(r=>layout(r.id,0));
+  draw();
+}
+
+function rrect(ctx,x,y,w,h,r){
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+function trunc(s,m){return s.length>m?s.slice(0,m-1)+'…':s}
+
+function draw(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.fillStyle=sty.bg;ctx.fillRect(0,0,cv.width,cv.height);
+  if(!nodes.length)return;
+
+  const bp=bestPath();
+  ctx.save();ctx.translate(pan.x,pan.y);ctx.scale(zoom,zoom);
+
+  // edges
+  edges.forEach(e=>{
+    const f=nodes.find(n=>n.id===e.from),t=nodes.find(n=>n.id===e.to);if(!f||!t)return;
+    const isBest=bp.includes(f.id)&&bp.includes(t.id);
+    const x1=f.x+NW/2,y1=f.y,x2=t.x-NW/2,y2=t.y,mx=(x1+x2)/2;
+    ctx.beginPath();
+    ctx.strokeStyle=isBest?sty.hi:sty.edge;
+    ctx.lineWidth=isBest?sty.ew+1.5:sty.ew;
+    ctx.moveTo(x1,y1);ctx.bezierCurveTo(mx,y1,mx,y2,x2,y2);ctx.stroke();
+    // prob label on edge
+    if(t.prob!==undefined){
+      ctx.fillStyle=isBest?sty.hi:'rgba(0,0,0,0.35)';
+      ctx.font=`${sty.fs-3}px 'DM Mono',monospace`;
+      ctx.textAlign='center';
+      ctx.fillText(t.prob+'%',mx,(y1+y2)/2-6);
+    }
+  });
+
+  // nodes
+  nodes.forEach(n=>{
+    const isSel=n.id===sel,isBest=bp.includes(n.id);
+    const hw=NW/2,hh=NH/2,x=n.x-hw,y=n.y-hh;
+    const r=sty.shape==='pill'?hh:sty.shape==='rect'?3:10;
+    ctx.save();
+    if(isSel){ctx.shadowColor=sty.hi;ctx.shadowBlur=14}
+    ctx.beginPath();rrect(ctx,x,y,NW,NH,r);
+    ctx.fillStyle=n.color||sty.nc;ctx.fill();
+    if(isSel){ctx.strokeStyle=sty.hi;ctx.lineWidth=2.5;ctx.stroke()}
+    else if(isBest){ctx.strokeStyle=sty.hi;ctx.lineWidth=1.5;ctx.stroke()}
+    ctx.restore();
+    const tc=n.tcolor||sty.tc||'#fff';
+    ctx.fillStyle=tc;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`600 ${sty.fs}px 'Syne',sans-serif`;
+    const ly=n.npv!==null?n.y-7:n.y;
+    ctx.fillText(trunc(n.label,18),n.x,ly);
+    if(n.npv!==null){
+      ctx.font=`${sty.fs-2}px 'DM Mono',monospace`;
+      ctx.fillStyle=isBest?sty.hi:'rgba(255,255,255,0.6)';
+      ctx.fillText(fmt(n.npv,n.currency||'$'),n.x,n.y+9);
+    }
+    const icon=n.type==='decision'?'◆':n.type==='terminal'?'●':'◎';
+    ctx.font=`${sty.fs-3}px sans-serif`;
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.textAlign='left';
+    ctx.fillText(icon,n.x-hw+5,n.y-hh+10);
+  });
+
+  ctx.restore();
+}
+
+function tab(t){
+  activeTab=t;
+  ['node','results','style','sens'].forEach(x=>{
+    document.getElementById('p-'+x).style.display=x===t?'':'none';
+    document.getElementById('t-'+x).classList.toggle('on',x===t);
+  });
+  if(t==='results')updateResults();
+  if(t==='sens')updateSens();
+}
+
+function updateSens(){
+  const n=nodes.find(n=>n.id===sensNid);
+  document.getElementById('s-nonode').style.display=n?'none':'';
+  document.getElementById('s-ctrl').style.display=n?'':'none';
+  if(!n)return;
+  document.getElementById('s-nname').textContent=n.label;
+  document.getElementById('s-slider').value=n.prob;
+  runSens(n.prob);
+  buildBars(n);
+}
+
+function runSens(val){
+  const n=nodes.find(n=>n.id===sensNid);if(!n)return;
+  document.getElementById('s-pval').textContent=val+'%';
+  const orig=n.prob;n.prob=parseFloat(val);
+  const roots=nodes.filter(r=>!r.parentId);
+  const ev=roots.length?getNodeEV(roots[0]):0;
+  document.getElementById('s-evout').textContent='EV: '+fmt(ev,n.currency||'$');
+  n.prob=orig;
+}
+
+function buildBars(n){
+  const c=document.getElementById('s-bars');
+  const roots=nodes.filter(r=>!r.parentId);if(!roots.length)return;
+  const orig=n.prob,vals=[];
+  for(let p=0;p<=100;p+=10){n.prob=p;vals.push(getNodeEV(roots[0]))}
+  n.prob=orig;
+  const mn=Math.min(...vals),mx=Math.max(...vals),range=mx-mn||1;
+  c.innerHTML=vals.map((v,i)=>{
+    const h=Math.max(4,((v-mn)/range)*52);
+    const act=Math.round(orig/10)===i;
+    return`<div style="flex:1;background:${act?sty.hi:'#DEDBD3'};height:${h}px;border-radius:2px 2px 0 0;transition:height 0.2s;"></div>`;
+  }).join('');
+}
+
+function resetAll(){
+  if(!confirm('Reset the entire tree?'))return;
+  nodes=[];edges=[];sel=null;nid=1;pan={x:0,y:0};zoom=1;
+  document.getElementById('empty').style.display='';
+  updatePanel();
+  ['h-ev','h-best'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—'});
+  document.getElementById('h-nodes').textContent='0';
+  draw();
+}
+
+function exportPNG(){
+  const link=document.createElement('a');
+  link.download='arbor-decision-tree.png';
+  link.href=cv.toDataURL('image/png');
+  link.click();
+}
+
+// PRO MODAL
+let pendingExport=null;
+function showProModal(type){
+  pendingExport=type;
+  const descs={
+    pdf:'Export your decision tree as a pixel-perfect, print-ready PDF — ideal for client reports, investment memos, and board presentations.',
+    svg:'Export as a fully editable SVG file, compatible with Figma, Illustrator, and PowerPoint. Scale infinitely without quality loss.'
+  };
+  document.getElementById('modal-desc').textContent=descs[type]||descs.pdf;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show')}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))closeModal()});
+
+function joinWaitlist(){
+  const email=prompt('Enter your email to join the waitlist:');
+  if(email){
+    console.log('Waitlist signup:',email);
+    const msg=document.createElement('div');
+    msg.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--primary);color:white;padding:14px 20px;border-radius:6px;z-index:10000;font-family:var(--sans);font-size:14px';
+    msg.textContent='✓ Thanks! We'll be in touch at '+email;
+    document.body.appendChild(msg);
+    closeModal();
+    setTimeout(()=>msg.remove(),3000);
+  }
+}
+
+resize();draw();
+</script>
+</body>
+</html>
