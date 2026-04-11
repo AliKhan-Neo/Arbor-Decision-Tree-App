@@ -238,6 +238,53 @@ input[type=range]::-webkit-slider-thumb{
 .nosel{text-align:center;padding:36px 0}
 .nosel-icon{font-size:24px;opacity:0.12;margin-bottom:8px}
 .nosel-text{font-size:11px;color:rgba(0,0,0,0.3)}
+
+/* RESPONSIVE DESIGN */
+@media(max-width:1024px){
+  :root{--panel:240px;--hdr:48px}
+  header{padding:0 12px;gap:8px}
+  .hstat{padding:0 10px}
+  .hbtn{height:28px;padding:0 10px;font-size:10px}
+  .logo{font-size:13px}
+}
+
+@media(max-width:768px){
+  :root{--panel:220px;--hdr:44px}
+  .app-body{flex-direction:column}
+  .cv-wrap{height:60%}
+  .panel{width:100%;flex-shrink:0;height:40%}
+  header{flex-wrap:wrap;padding:8px}
+  .header-stats{display:none}
+  .hbtn{height:26px;padding:0 8px;font-size:9px}
+  .logo{font-size:12px}
+  .logo-sep{display:none}
+  .ptabs{flex-wrap:wrap}
+  .ptab{font-size:8px;padding:8px 0}
+}
+
+@media(max-width:480px){
+  :root{--panel:0px;--hdr:40px}
+  .app-body{flex-direction:column}
+  .cv-wrap{height:100%;flex:1}
+  .panel{display:none}
+  header{justify-content:space-between;padding:6px}
+  .hbtn{height:24px;padding:0 6px;font-size:8px}
+  .logo{font-size:11px}
+  .spacer{display:none}
+  .pcontent{padding:10px;font-size:11px}
+  .f input[type=text],.f input[type=number],.f select{height:28px;font-size:11px}
+  .btn{height:30px;font-size:10px;margin-bottom:4px}
+  .rcard{padding:9px 11px}
+  .rcard-v{font-size:16px}
+  .modal{padding:24px;max-width:90vw}
+  .modal-title{font-size:24px}
+  .modal-cta{height:40px;font-size:12px}
+}
+
+@media(max-width:360px){
+  .hint{display:none}
+  .hstat-l,.hstat-v{font-size:9px}
+}
 </style>
 </head>
 <body>
