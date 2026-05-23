@@ -4,33 +4,35 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Arbor — Decision Intelligence for Finance</title>
-<link rel="stylesheet" href="styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-  --primary:#1E7A45;
-  --primary-light:#2a9a5a;
-  --primary-dim:#164d31;
-  --bg:#F8F7F4;
-  --bg-alt:#FAFAF8;
-  --bg-band:#F0EEEA;
-  --text:#1C1C1C;
-  --text-2:#555555;
-  --text-3:#999999;
-  --border:#E5E5E5;
-  --border-divider:#E0DDD8;
+  --gold:#C9A84C;
+  --gold-light:#E8C97A;
+  --gold-dim:#8B6914;
+  --ink:#08080A;
+  --ink-2:#141416;
+  --ink-3:#1E1E22;
+  --ink-4:#2C2C32;
+  --mist:rgba(255,255,255,0.06);
+  --mist2:rgba(255,255,255,0.03);
+  --text:#F0EDE6;
+  --text-2:rgba(240,237,230,0.55);
+  --text-3:rgba(240,237,230,0.28);
+  --border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.12);
   --serif:'Cormorant Garamond',Georgia,serif;
   --sans:'Syne',sans-serif;
   --mono:'DM Mono',monospace;
-  --playfair:'Playfair Display',Georgia,serif;
 }
 
 html{scroll-behavior:smooth}
 
 body{
-  background:var(--bg);
+  background:var(--ink);
   color:var(--text);
   font-family:var(--sans);
   overflow-x:hidden;
@@ -61,20 +63,20 @@ nav{
   transition:border-color 0.3s, background 0.3s;
 }
 nav.scrolled{
-  background:rgba(248,247,244,0.92);
+  background:rgba(8,8,10,0.92);
   backdrop-filter:blur(16px);
   border-color:var(--border);
 }
 .nav-logo{
-  font-family:var(--serif);
+  font-family:var(--sans);
   font-size:18px;
   font-weight:800;
   letter-spacing:0.06em;
   text-transform:uppercase;
-  color:var(--primary);
+  color:var(--gold);
 }
 .nav-logo span{
-  color:#AAAAAA;
+  color:rgba(255,255,255,0.25);
   font-weight:400;
   font-size:14px;
   letter-spacing:0.02em;
@@ -101,9 +103,9 @@ nav.scrolled{
   height:36px;
   padding:0 20px;
   border-radius:4px;
-  border:1px solid var(--primary-dim);
+  border:1px solid var(--gold-dim);
   background:transparent;
-  color:var(--primary);
+  color:var(--gold);
   font-family:var(--sans);
   font-size:12px;
   font-weight:600;
@@ -114,7 +116,7 @@ nav.scrolled{
   display:flex;align-items:center;
   transition:all 0.2s;
 }
-.nav-cta:hover{background:var(--primary);color:#FFF}
+.nav-cta:hover{background:var(--gold);color:var(--ink)}
 
 /* HERO */
 .hero{
@@ -145,17 +147,16 @@ nav.scrolled{
   font-size:11px;
   letter-spacing:0.22em;
   text-transform:uppercase;
-  color:var(--primary);
+  color:var(--gold);
   margin-bottom:28px;
   opacity:0;
   animation:fadeUp 0.8s 0.2s forwards;
 }
 
 .hero-title{
-  font-family:var(--playfair);
+  font-family:var(--serif);
   font-size:clamp(54px,7vw,96px);
-  font-weight:400;
-  font-style:italic;
+  font-weight:500;
   line-height:1.0;
   letter-spacing:-0.01em;
   max-width:900px;
@@ -165,7 +166,7 @@ nav.scrolled{
 }
 .hero-title em{
   font-style:italic;
-  color:var(--primary);
+  color:var(--gold);
 }
 
 .hero-subtitle{
@@ -179,7 +180,6 @@ nav.scrolled{
   line-height:1.5;
   opacity:0;
   animation:fadeUp 0.9s 0.5s forwards;
-  color:#555555;
 }
 
 .hero-actions{
@@ -194,9 +194,9 @@ nav.scrolled{
   height:52px;
   padding:0 36px;
   border-radius:4px;
-  background:var(--primary);
+  background:var(--gold);
   border:none;
-  color:#FFF;
+  color:var(--ink);
   font-family:var(--sans);
   font-size:13px;
   font-weight:700;
@@ -207,14 +207,14 @@ nav.scrolled{
   display:flex;align-items:center;gap:8px;
   transition:all 0.2s;
 }
-.btn-primary:hover{background:var(--primary-light);transform:translateY(-1px)}
+.btn-primary:hover{background:var(--gold-light);transform:translateY(-1px)}
 
 .btn-ghost{
   height:52px;
   padding:0 28px;
   border-radius:4px;
   background:transparent;
-  border:1px solid #DDD;
+  border:1px solid var(--border2);
   color:var(--text-2);
   font-family:var(--sans);
   font-size:13px;
@@ -226,7 +226,7 @@ nav.scrolled{
   display:flex;align-items:center;gap:8px;
   transition:all 0.2s;
 }
-.btn-ghost:hover{border-color:#999;color:var(--text)}
+.btn-ghost:hover{border-color:var(--text-3);color:var(--text)}
 
 .hero-stat-row{
   display:flex;
@@ -242,7 +242,7 @@ nav.scrolled{
   font-family:var(--mono);
   font-size:28px;
   font-weight:500;
-  color:var(--primary);
+  color:var(--gold);
   display:block;
 }
 .hero-stat-label{
@@ -250,7 +250,7 @@ nav.scrolled{
   font-size:11px;
   letter-spacing:0.12em;
   text-transform:uppercase;
-  color:#999;
+  color:var(--text-3);
   margin-top:4px;
   display:block;
 }
@@ -274,12 +274,12 @@ nav.scrolled{
   font-size:11px;
   letter-spacing:0.14em;
   text-transform:uppercase;
-  color:#999;
+  color:var(--text-3);
   padding:0 32px;
   border-right:1px solid var(--border);
   flex-shrink:0;
 }
-.marquee-item span{color:var(--primary);margin-right:8px;}
+.marquee-item span{color:var(--gold);margin-right:8px;}
 
 @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
@@ -290,7 +290,7 @@ section{padding:120px 48px}
   font-size:10px;
   letter-spacing:0.20em;
   text-transform:uppercase;
-  color:var(--primary);
+  color:var(--gold);
   margin-bottom:20px;
 }
 .section-title{
@@ -300,19 +300,19 @@ section{padding:120px 48px}
   line-height:1.1;
   margin-bottom:20px;
 }
-.section-title em{font-style:italic;color:var(--primary);}
+.section-title em{font-style:italic;color:var(--gold);}
 .section-body{
   font-family:var(--serif);
   font-size:18px;
   font-weight:400;
-  color:#555555;
+  color:var(--text-2);
   line-height:1.7;
   max-width:560px;
 }
 
 /* FEATURES */
 .features{
-  background:#FAFAF8;
+  background:var(--ink-2);
   border-top:1px solid var(--border);
   border-bottom:1px solid var(--border);
 }
@@ -327,15 +327,15 @@ section{padding:120px 48px}
   margin-top:64px;
 }
 .feature-card{
-  background:#FFF;
+  background:var(--ink-2);
   padding:36px 32px;
   transition:background 0.2s;
 }
-.feature-card:hover{background:#FAFAF8}
+.feature-card:hover{background:var(--ink-3)}
 .feature-icon{
   width:40px;height:40px;
   border-radius:8px;
-  border:1px solid #DDD;
+  border:1px solid var(--border2);
   display:flex;align-items:center;justify-content:center;
   margin-bottom:20px;
   font-size:18px;
@@ -345,12 +345,12 @@ section{padding:120px 48px}
   font-size:15px;
   font-weight:600;
   margin-bottom:10px;
-  color:#1C1C1C;
+  color:var(--text);
 }
 .feature-desc{
   font-family:var(--serif);
   font-size:15px;
-  color:#555555;
+  color:var(--text-2);
   line-height:1.6;
 }
 .feature-badge{
@@ -362,9 +362,9 @@ section{padding:120px 48px}
   font-size:10px;
   letter-spacing:0.10em;
   text-transform:uppercase;
-  background:rgba(30,122,69,0.1);
-  color:var(--primary);
-  border:1px solid rgba(30,122,69,0.2);
+  background:rgba(201,168,76,0.12);
+  color:var(--gold);
+  border:1px solid rgba(201,168,76,0.2);
 }
 
 /* HOW IT WORKS */
@@ -385,7 +385,7 @@ section{padding:120px 48px}
   font-family:var(--mono);
   font-size:32px;
   font-weight:300;
-  color:var(--primary);
+  color:var(--gold);
   opacity:0.6;
   line-height:1;
   padding-top:4px;
@@ -396,18 +396,17 @@ section{padding:120px 48px}
   font-size:18px;
   font-weight:600;
   margin-bottom:8px;
-  color:#1C1C1C;
 }
 .step-desc{
   font-family:var(--serif);
   font-size:16px;
-  color:#555555;
+  color:var(--text-2);
   line-height:1.65;
 }
 
 /* PRICING */
 .pricing{
-  background:#FAFAF8;
+  background:var(--ink-2);
   border-top:1px solid var(--border);
 }
 .pricing-grid{
@@ -423,18 +422,17 @@ section{padding:120px 48px}
   padding:40px 36px;
   position:relative;
   transition:border-color 0.2s;
-  background:#FFF;
 }
-.pricing-card:hover{border-color:#999}
+.pricing-card:hover{border-color:var(--border2)}
 .pricing-card.featured{
-  border-color:var(--primary-dim);
-  background:linear-gradient(135deg,rgba(30,122,69,0.05) 0%,transparent 60%);
+  border-color:var(--gold-dim);
+  background:linear-gradient(135deg,rgba(201,168,76,0.05) 0%,transparent 60%);
 }
 .pricing-tag{
   position:absolute;
   top:-1px;right:28px;
-  background:var(--primary);
-  color:#FFF;
+  background:var(--gold);
+  color:var(--ink);
   font-family:var(--mono);
   font-size:10px;
   letter-spacing:0.12em;
@@ -449,14 +447,14 @@ section{padding:120px 48px}
   font-weight:600;
   letter-spacing:0.14em;
   text-transform:uppercase;
-  color:#999;
+  color:var(--text-3);
   margin-bottom:16px;
 }
 .plan-price{
   font-family:var(--mono);
   font-size:48px;
   font-weight:400;
-  color:#1C1C1C;
+  color:var(--text);
   line-height:1;
   margin-bottom:4px;
 }
@@ -464,14 +462,14 @@ section{padding:120px 48px}
 .plan-period{
   font-family:var(--mono);
   font-size:12px;
-  color:#999;
+  color:var(--text-3);
   margin-bottom:32px;
 }
 .plan-features{list-style:none;margin-bottom:36px}
 .plan-features li{
   font-family:var(--serif);
   font-size:15px;
-  color:#555555;
+  color:var(--text-2);
   padding:9px 0;
   border-bottom:1px solid var(--border);
   display:flex;align-items:center;gap:10px;
@@ -481,11 +479,11 @@ section{padding:120px 48px}
   content:'';
   width:5px;height:5px;
   border-radius:50%;
-  background:var(--primary);
+  background:var(--gold);
   flex-shrink:0;
 }
-.plan-features li.muted{color:#CCC}
-.plan-features li.muted::before{background:#CCC}
+.plan-features li.muted{color:var(--text-3)}
+.plan-features li.muted::before{background:var(--text-3)}
 .btn-plan{
   width:100%;
   height:48px;
@@ -496,16 +494,16 @@ section{padding:120px 48px}
   letter-spacing:0.08em;
   text-transform:uppercase;
   cursor:pointer;
-  border:1px solid #DDD;
+  border:1px solid var(--border2);
   background:transparent;
-  color:#1C1C1C;
+  color:var(--text);
   transition:all 0.2s;
   text-decoration:none;
   display:flex;align-items:center;justify-content:center;
 }
-.btn-plan:hover{background:#F5F5F5;border-color:#999}
-.btn-plan.gold{background:var(--primary);border-color:var(--primary);color:#FFF}
-.btn-plan.gold:hover{background:var(--primary-light)}
+.btn-plan:hover{background:var(--mist);border-color:var(--border2)}
+.btn-plan.gold{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+.btn-plan.gold:hover{background:var(--gold-light)}
 
 /* USE CASES */
 .use-cases{border-top:1px solid var(--border)}
@@ -520,15 +518,14 @@ section{padding:120px 48px}
   border:1px solid var(--border);
   border-radius:8px;
   transition:all 0.2s;
-  background:#FFF;
 }
-.use-card:hover{background:#FAFAF8;border-color:#999;transform:translateY(-2px)}
+.use-card:hover{background:var(--mist);border-color:var(--border2);transform:translateY(-2px)}
 .use-tag{
   font-family:var(--mono);
   font-size:10px;
   letter-spacing:0.14em;
   text-transform:uppercase;
-  color:var(--primary);
+  color:var(--gold);
   margin-bottom:12px;
 }
 .use-title{
@@ -536,12 +533,11 @@ section{padding:120px 48px}
   font-size:15px;
   font-weight:600;
   margin-bottom:8px;
-  color:#1C1C1C;
 }
 .use-desc{
   font-family:var(--serif);
   font-size:14px;
-  color:#555555;
+  color:var(--text-2);
   line-height:1.6;
 }
 
@@ -559,7 +555,7 @@ section{padding:120px 48px}
   top:50%;left:50%;
   transform:translate(-50%,-50%);
   width:600px;height:600px;
-  background:radial-gradient(ellipse,rgba(30,122,69,0.06) 0%,transparent 70%);
+  background:radial-gradient(ellipse,rgba(201,168,76,0.06) 0%,transparent 70%);
   pointer-events:none;
 }
 .cta-title{
@@ -568,13 +564,12 @@ section{padding:120px 48px}
   font-weight:500;
   line-height:1.05;
   margin-bottom:24px;
-  color:#1C1C1C;
 }
-.cta-title em{font-style:italic;color:var(--primary)}
+.cta-title em{font-style:italic;color:var(--gold)}
 .cta-sub{
   font-family:var(--serif);
   font-size:18px;
-  color:#555555;
+  color:var(--text-2);
   margin-bottom:48px;
   max-width:500px;
   margin-left:auto;
@@ -594,13 +589,13 @@ footer{
   font-size:14px;
   font-weight:800;
   letter-spacing:0.06em;
-  color:var(--primary);
+  color:var(--gold);
   opacity:0.7;
 }
 .footer-copy{
   font-family:var(--mono);
   font-size:11px;
-  color:#999;
+  color:var(--text-3);
   letter-spacing:0.06em;
 }
 .footer-links{
@@ -609,12 +604,12 @@ footer{
 .footer-links a{
   font-family:var(--mono);
   font-size:11px;
-  color:#999;
+  color:var(--text-3);
   text-decoration:none;
   letter-spacing:0.06em;
   transition:color 0.2s;
 }
-.footer-links a:hover{color:#555}
+.footer-links a:hover{color:var(--text-2)}
 
 /* ANIMATIONS */
 @keyframes fadeUp{
@@ -661,33 +656,33 @@ footer{
 <section class="hero">
   <div class="hero-geo">
     <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-      <line x1="200" y1="450" x2="500" y2="300" stroke="rgba(30,122,69,0.08)" stroke-width="1"/>
-      <line x1="500" y1="300" x2="750" y2="200" stroke="rgba(30,122,69,0.08)" stroke-width="1"/>
-      <line x1="500" y1="300" x2="720" y2="420" stroke="rgba(30,122,69,0.08)" stroke-width="1"/>
-      <line x1="750" y1="200" x2="980" y2="150" stroke="rgba(30,122,69,0.06)" stroke-width="1"/>
-      <line x1="750" y1="200" x2="960" y2="280" stroke="rgba(30,122,69,0.06)" stroke-width="1"/>
-      <line x1="720" y1="420" x2="950" y2="380" stroke="rgba(30,122,69,0.06)" stroke-width="1"/>
-      <line x1="720" y1="420" x2="940" y2="520" stroke="rgba(30,122,69,0.06)" stroke-width="1"/>
-      <line x1="500" y1="300" x2="720" y2="580" stroke="rgba(30,122,69,0.05)" stroke-width="1"/>
-      <line x1="720" y1="580" x2="960" y2="560" stroke="rgba(30,122,69,0.04)" stroke-width="1"/>
-      <line x1="720" y1="580" x2="940" y2="660" stroke="rgba(30,122,69,0.04)" stroke-width="1"/>
+      <line x1="200" y1="450" x2="500" y2="300" stroke="rgba(201,168,76,0.08)" stroke-width="1"/>
+      <line x1="500" y1="300" x2="750" y2="200" stroke="rgba(201,168,76,0.08)" stroke-width="1"/>
+      <line x1="500" y1="300" x2="720" y2="420" stroke="rgba(201,168,76,0.08)" stroke-width="1"/>
+      <line x1="750" y1="200" x2="980" y2="150" stroke="rgba(201,168,76,0.06)" stroke-width="1"/>
+      <line x1="750" y1="200" x2="960" y2="280" stroke="rgba(201,168,76,0.06)" stroke-width="1"/>
+      <line x1="720" y1="420" x2="950" y2="380" stroke="rgba(201,168,76,0.06)" stroke-width="1"/>
+      <line x1="720" y1="420" x2="940" y2="520" stroke="rgba(201,168,76,0.06)" stroke-width="1"/>
+      <line x1="500" y1="300" x2="720" y2="580" stroke="rgba(201,168,76,0.05)" stroke-width="1"/>
+      <line x1="720" y1="580" x2="960" y2="560" stroke="rgba(201,168,76,0.04)" stroke-width="1"/>
+      <line x1="720" y1="580" x2="940" y2="660" stroke="rgba(201,168,76,0.04)" stroke-width="1"/>
       <!-- nodes -->
-      <rect x="170" y="430" width="60" height="36" rx="5" fill="none" stroke="rgba(30,122,69,0.15)" stroke-width="1"/>
-      <rect x="470" y="282" width="60" height="36" rx="5" fill="none" stroke="rgba(30,122,69,0.20)" stroke-width="1.5"/>
-      <rect x="722" y="182" width="56" height="32" rx="5" fill="none" stroke="rgba(30,122,69,0.14)" stroke-width="1"/>
-      <rect x="692" y="402" width="56" height="32" rx="5" fill="none" stroke="rgba(30,122,69,0.14)" stroke-width="1"/>
-      <rect x="690" y="562" width="56" height="32" rx="5" fill="none" stroke="rgba(30,122,69,0.10)" stroke-width="1"/>
-      <circle cx="980" cy="155" r="12" fill="none" stroke="rgba(30,122,69,0.22)" stroke-width="1.5"/>
-      <circle cx="960" cy="285" r="12" fill="none" stroke="rgba(30,122,69,0.18)" stroke-width="1.5"/>
-      <circle cx="950" cy="385" r="12" fill="none" stroke="rgba(30,122,69,0.12)" stroke-width="1"/>
-      <circle cx="940" cy="525" r="12" fill="none" stroke="rgba(30,122,69,0.10)" stroke-width="1"/>
-      <circle cx="960" cy="565" r="12" fill="none" stroke="rgba(30,122,69,0.10)" stroke-width="1"/>
-      <circle cx="940" cy="665" r="12" fill="none" stroke="rgba(30,122,69,0.08)" stroke-width="1"/>
+      <rect x="170" y="430" width="60" height="36" rx="5" fill="none" stroke="rgba(201,168,76,0.15)" stroke-width="1"/>
+      <rect x="470" y="282" width="60" height="36" rx="5" fill="none" stroke="rgba(201,168,76,0.20)" stroke-width="1.5"/>
+      <rect x="722" y="182" width="56" height="32" rx="5" fill="none" stroke="rgba(201,168,76,0.14)" stroke-width="1"/>
+      <rect x="692" y="402" width="56" height="32" rx="5" fill="none" stroke="rgba(201,168,76,0.14)" stroke-width="1"/>
+      <rect x="690" y="562" width="56" height="32" rx="5" fill="none" stroke="rgba(201,168,76,0.10)" stroke-width="1"/>
+      <circle cx="980" cy="155" r="12" fill="none" stroke="rgba(201,168,76,0.22)" stroke-width="1.5"/>
+      <circle cx="960" cy="285" r="12" fill="none" stroke="rgba(201,168,76,0.18)" stroke-width="1.5"/>
+      <circle cx="950" cy="385" r="12" fill="none" stroke="rgba(201,168,76,0.12)" stroke-width="1"/>
+      <circle cx="940" cy="525" r="12" fill="none" stroke="rgba(201,168,76,0.10)" stroke-width="1"/>
+      <circle cx="960" cy="565" r="12" fill="none" stroke="rgba(201,168,76,0.10)" stroke-width="1"/>
+      <circle cx="940" cy="665" r="12" fill="none" stroke="rgba(201,168,76,0.08)" stroke-width="1"/>
       <!-- best path highlight -->
-      <line x1="200" y1="450" x2="500" y2="300" stroke="rgba(30,122,69,0.35)" stroke-width="2"/>
-      <line x1="500" y1="300" x2="750" y2="200" stroke="rgba(30,122,69,0.35)" stroke-width="2"/>
-      <line x1="750" y1="200" x2="980" y2="150" stroke="rgba(30,122,69,0.35)" stroke-width="2"/>
-      <circle cx="980" cy="155" r="12" fill="rgba(30,122,69,0.15)" stroke="rgba(30,122,69,0.5)" stroke-width="1.5"/>
+      <line x1="200" y1="450" x2="500" y2="300" stroke="rgba(201,168,76,0.35)" stroke-width="2"/>
+      <line x1="500" y1="300" x2="750" y2="200" stroke="rgba(201,168,76,0.35)" stroke-width="2"/>
+      <line x1="750" y1="200" x2="980" y2="150" stroke="rgba(201,168,76,0.35)" stroke-width="2"/>
+      <circle cx="980" cy="155" r="12" fill="rgba(201,168,76,0.15)" stroke="rgba(201,168,76,0.5)" stroke-width="1.5"/>
     </svg>
   </div>
 
