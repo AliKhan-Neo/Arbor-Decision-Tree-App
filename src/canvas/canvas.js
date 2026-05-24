@@ -245,6 +245,7 @@ export function createCanvasController(canvasEl) {
     setSelection(id) { selectedId = id; draw(); },
     getSelectedId() { return selectedId; },
     setBestPath(ids) { bestPathIds = new Set(ids || []); draw(); },
+    getBestPathIds() { return [...bestPathIds]; },
     setTerminalEmvs(map) { terminalEmvs = map || null; draw(); },
     clearTerminalEmvs() { terminalEmvs = null; draw(); },
     refreshTheme() { refreshPalette(); draw(); },

@@ -19,15 +19,22 @@ const CHUNK = 500;
 export function runMonteCarlo(tree, opts = {}) {
   const seed = opts.seed ?? tree.meta?.seed ?? 42;
   const iterations = opts.iterations ?? tree.meta?.iterations ?? 10000;
+  const recordSamples = !!opts.recordSamples;
   const rng = makeRng(seed);
 
   const evs = new Float64Array(iterations);
   const pathCounts = new Map();
   const terminalContribTotals = {};
   const samplePaths = []; // first ~120 best-path id arrays for the animation
+  // If recordSamples is on, capture per-iteration sampled values keyed by
+  // their input key. Used by Excel's "Iteration Sample" sheet.
+  const inputSamples = recordSamples ? [] : null;
+  // Per-iteration root EV + decision-path for the rollback trace sheet.
+  const traces = recordSamples ? [] : null;
 
   for (let i = 0; i < iterations; i++) {
-    const { ev, optimalPath, optimalPathIds, terminalContribs } = rollbackOnce(tree, rng);
+    const capture = recordSamples ? {} : null;
+    const { ev, optimalPath, optimalPathIds, terminalContribs } = rollbackOnce(tree, rng, null, capture);
     evs[i] = ev;
     const pathKey = optimalPath.join(' → ') || '(none)';
     pathCounts.set(pathKey, (pathCounts.get(pathKey) || 0) + 1);
@@ -35,9 +42,17 @@ export function runMonteCarlo(tree, opts = {}) {
       terminalContribTotals[id] = (terminalContribTotals[id] || 0) + terminalContribs[id];
     }
     if (samplePaths.length < 120) samplePaths.push(optimalPathIds);
+    if (inputSamples) inputSamples.push(capture);
+    if (traces && i === 0) {
+      // Capture iteration-0 in detail for the rollback-trace sheet.
+      traces.push({ iter: 0, ev, optimalPath, optimalPathIds, terminalContribs, samples: capture });
+    }
   }
 
-  return aggregate(tree, evs, pathCounts, seed, iterations, terminalContribTotals, samplePaths);
+  const out = aggregate(tree, evs, pathCounts, seed, iterations, terminalContribTotals, samplePaths);
+  if (inputSamples) out.inputSamples = inputSamples;
+  if (traces)       out.traces = traces;
+  return out;
 }
 
 // Chunked runner. Invokes onProgress({iterations, total, sample}) at most every

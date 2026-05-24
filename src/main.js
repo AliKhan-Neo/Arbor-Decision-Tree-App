@@ -9,6 +9,9 @@ import { createDashboard } from './ui/dashboard.js';
 import { createAnimation } from './ui/animation.js';
 import { createProModal } from './ui/modals.js';
 import { createResultsModal } from './ui/resultsModal.js';
+import { exportExcel } from './export/excelDecisionTree.js';
+import { exportSvg } from './export/svgExport.js';
+import { exportPdf } from './export/pdfReport.js';
 import { initTheme, mountThemeToggle } from './ui/themeToggle.js';
 import { initPanels } from './ui/panels.js';
 
@@ -124,9 +127,22 @@ document.getElementById('btn-new').addEventListener('click', () => {
 document.getElementById('btn-simulate').addEventListener('click', runSimulation);
 document.getElementById('btn-results').addEventListener('click', () => resultsModal.show(lastResult, tree));
 
-document.getElementById('btn-export-pdf').addEventListener('click', () => proModal.show('pdf'));
-document.getElementById('btn-export-svg').addEventListener('click', () => proModal.show('svg'));
-document.getElementById('btn-export-xlsx').addEventListener('click', () => proModal.show('excel'));
+document.getElementById('btn-export-pdf').addEventListener('click', async () => {
+  const ids = canvasCtl.getBestPathIds ? canvasCtl.getBestPathIds() : [];
+  await exportPdf(tree, lastResult, {
+    bestPathIds: ids,
+    tornadoCanvas:   document.getElementById('dash-tor-canvas'),
+    histogramCanvas: document.getElementById('dash-hist-canvas')
+  });
+});
+document.getElementById('btn-export-svg').addEventListener('click', () => {
+  const ids = canvasCtl.getBestPathIds ? canvasCtl.getBestPathIds() : [];
+  exportSvg(tree, { bestPathIds: ids, terminalEmvs: lastResult?.terminalEmvs || null });
+});
+document.getElementById('btn-export-xlsx').addEventListener('click', async () => {
+  if (!rootOf(tree)) { alert('Add a root node first.'); return; }
+  await exportExcel(tree);
+});
 
 // ── 4. Initial render ───────────────────────────────────────────────────
 inspector.setTree(tree);

@@ -121,10 +121,14 @@ function rollbackWith(tree, sampleAt) {
 
 // Stochastic rollback — samples every distribution-mode input via the rng.
 // `overrides`: Map<key, value> to pin specific inputs (used by tornado).
-export function rollbackOnce(tree, rng, overrides = null) {
+// `captureInto`: optional object that receives `{ [key]: sampledValue }` for
+//   distribution-mode inputs (used by Excel's "Iteration Sample" sheet).
+export function rollbackOnce(tree, rng, overrides = null, captureInto = null) {
   const sampler = (input, key) => {
     if (overrides && overrides.has(key)) return overrides.get(key);
-    return sampleInput(input, rng);
+    const v = sampleInput(input, rng);
+    if (captureInto && input?.mode === 'distribution') captureInto[key] = v;
+    return v;
   };
   return rollbackWith(tree, sampler);
 }
