@@ -23,15 +23,21 @@ export function runMonteCarlo(tree, opts = {}) {
 
   const evs = new Float64Array(iterations);
   const pathCounts = new Map();
+  const terminalContribTotals = {};
+  const samplePaths = []; // first ~120 best-path id arrays for the animation
 
   for (let i = 0; i < iterations; i++) {
-    const { ev, optimalPath } = rollbackOnce(tree, rng);
+    const { ev, optimalPath, optimalPathIds, terminalContribs } = rollbackOnce(tree, rng);
     evs[i] = ev;
     const pathKey = optimalPath.join(' → ') || '(none)';
     pathCounts.set(pathKey, (pathCounts.get(pathKey) || 0) + 1);
+    for (const id in terminalContribs) {
+      terminalContribTotals[id] = (terminalContribTotals[id] || 0) + terminalContribs[id];
+    }
+    if (samplePaths.length < 120) samplePaths.push(optimalPathIds);
   }
 
-  return aggregate(tree, evs, pathCounts, seed, iterations);
+  return aggregate(tree, evs, pathCounts, seed, iterations, terminalContribTotals, samplePaths);
 }
 
 // Chunked runner. Invokes onProgress({iterations, total, sample}) at most every
@@ -46,30 +52,38 @@ export function runMonteCarloChunked(tree, opts = {}) {
   const rng = makeRng(seed);
   const evs = new Float64Array(iterations);
   const pathCounts = new Map();
+  const terminalContribTotals = {};
+  const samplePaths = [];        // first ~120 iteration best-paths for the animation
+  const pathStream = [];         // running cursor of *all* path ids — drained by animator
 
   return new Promise(resolve => {
     let i = 0;
     function step() {
       const limit = Math.min(i + CHUNK, iterations);
       for (; i < limit; i++) {
-        const { ev, optimalPath } = rollbackOnce(tree, rng);
+        const { ev, optimalPath, optimalPathIds, terminalContribs } = rollbackOnce(tree, rng);
         evs[i] = ev;
         const pathKey = optimalPath.join(' → ') || '(none)';
         pathCounts.set(pathKey, (pathCounts.get(pathKey) || 0) + 1);
+        for (const id in terminalContribs) {
+          terminalContribTotals[id] = (terminalContribTotals[id] || 0) + terminalContribs[id];
+        }
+        if (samplePaths.length < 120) samplePaths.push(optimalPathIds);
+        pathStream.push(optimalPathIds);
       }
-      onProgress({ iterations: i, total: iterations, evs });
+      onProgress({ iterations: i, total: iterations, evs, pathStream });
       if (i < iterations) {
         // Use setTimeout(0) to yield to the rAF loop driving the animation.
         setTimeout(step, 0);
       } else {
-        resolve(aggregate(tree, evs, pathCounts, seed, iterations));
+        resolve(aggregate(tree, evs, pathCounts, seed, iterations, terminalContribTotals, samplePaths));
       }
     }
     step();
   });
 }
 
-function aggregate(tree, evs, pathCounts, seed, iterations) {
+function aggregate(tree, evs, pathCounts, seed, iterations, terminalContribTotals = {}, samplePaths = []) {
   const sorted = Float64Array.from(evs).sort();
 
   // Summary stats.
@@ -116,6 +130,13 @@ function aggregate(tree, evs, pathCounts, seed, iterations) {
   // Tornado.
   const tornado = buildTornado(tree);
 
+  // Per-terminal EMV contribution (mean over iterations).
+  // Σ terminalEmvs across all terminals ≈ summary.mean (within fp tolerance).
+  const terminalEmvs = {};
+  for (const id in terminalContribTotals) {
+    terminalEmvs[id] = terminalContribTotals[id] / iterations;
+  }
+
   return {
     seed,
     iterations,
@@ -125,7 +146,9 @@ function aggregate(tree, evs, pathCounts, seed, iterations) {
     percentiles,
     histogram,
     stability,
-    tornado
+    tornado,
+    terminalEmvs,
+    samplePaths            // first 120 best-paths for the animation
   };
 }
 

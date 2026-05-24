@@ -35,15 +35,23 @@ function indexTree(tree) {
 // (root -> terminal) following the maximising-EV choice at each decision node.
 function rollbackWith(tree, sampleAt) {
   const root = rootOf(tree);
-  if (!root) return { ev: 0, optimalPath: [] };
+  if (!root) return { ev: 0, optimalPath: [], optimalPathIds: [], terminalContribs: {} };
   const childIdx = indexTree(tree);
 
+  // Each rollback returns:
+  //   ev            — the subtree's EV under this iteration's samples
+  //   branchOf      — {node, weight, sub} indicating the dominant/chosen child
+  //   terminalContribs — { [terminalId]: contribution } such that summing over
+  //                      the subtree's reachable terminals = ev. Decision nodes
+  //                      pass through only the chosen child's contributions
+  //                      (unchosen branches contribute 0), so the root's
+  //                      terminalContribs sum to the root EV.
   function rollback(node) {
     const kids = childIdx.get(node.id) || [];
 
     if (node.type === 'terminal') {
       const v = sampleAt(node.payoff, `payoff:${node.id}`);
-      return { ev: v, branchOf: null };
+      return { ev: v, branchOf: null, terminalContribs: { [node.id]: v } };
     }
 
     if (node.type === 'chance') {
@@ -53,19 +61,23 @@ function rollbackWith(tree, sampleAt) {
       const norm = raw.map(v => v / sum);
       let ev = 0;
       let branchOf = null;
+      const contribs = {};
       for (let i = 0; i < kids.length; i++) {
         const sub = rollback(kids[i]);
         ev += norm[i] * sub.ev;
-        // record subtree choices: chance nodes don't make a choice — propagate
-        // the dominant child's path purely for reporting (most-likely outcome).
+        for (const id in sub.terminalContribs) {
+          contribs[id] = (contribs[id] || 0) + norm[i] * sub.terminalContribs[id];
+        }
         if (branchOf === null || norm[i] > branchOf.weight) {
           branchOf = { node: kids[i], weight: norm[i], sub };
         }
       }
-      return { ev, branchOf };
+      return { ev, branchOf, terminalContribs: contribs };
     }
 
     // type === 'decision' — pick max EV. (a) no probability sampled here.
+    // Only the chosen child's terminals receive contributions (unchosen
+    // branches don't actually happen in this iteration).
     let best = null;
     for (const k of kids) {
       const sub = rollback(k);
@@ -73,28 +85,38 @@ function rollbackWith(tree, sampleAt) {
         best = { node: k, sub };
       }
     }
-    if (!best) return { ev: 0, branchOf: null };
-    return { ev: best.sub.ev, branchOf: { node: best.node, sub: best.sub } };
+    if (!best) return { ev: 0, branchOf: null, terminalContribs: {} };
+    return {
+      ev: best.sub.ev,
+      branchOf: { node: best.node, sub: best.sub },
+      terminalContribs: best.sub.terminalContribs
+    };
   }
 
   // Trace the optimal-decision path. At chance nodes we DO follow the
   // most-likely branch so the path string remains stable enough for the
   // stability table to be meaningful, but the EV calculation above already
   // accounts for the full chance distribution.
-  function tracePath(node, sub) {
-    const out = [];
+  function tracePath(sub) {
+    const labels = [];
+    const ids = [root.id];
     let cur = sub;
-    let n = node;
     while (cur && cur.branchOf) {
-      out.push(cur.branchOf.node.branchLabel || cur.branchOf.node.label);
-      n = cur.branchOf.node;
+      labels.push(cur.branchOf.node.branchLabel || cur.branchOf.node.label);
+      ids.push(cur.branchOf.node.id);
       cur = cur.branchOf.sub;
     }
-    return out;
+    return { labels, ids };
   }
 
   const result = rollback(root);
-  return { ev: result.ev, optimalPath: tracePath(root, result) };
+  const path = tracePath(result);
+  return {
+    ev: result.ev,
+    optimalPath: path.labels,
+    optimalPathIds: path.ids,
+    terminalContribs: result.terminalContribs
+  };
 }
 
 // Stochastic rollback — samples every distribution-mode input via the rng.

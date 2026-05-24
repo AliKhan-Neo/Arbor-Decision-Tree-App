@@ -291,6 +291,13 @@ group('Monte Carlo', () => {
       assert(d[i - 1].delta >= d[i].delta, `unsorted at ${i}`);
     }
   });
+  test('36. Σ terminalEmvs ≈ root EV (per-terminal contribution invariant)', () => {
+    const t = defaultHydrogenTree();
+    const r = runMonteCarlo(t, { iterations: 500, seed: 7 });
+    let sum = 0;
+    for (const id in r.terminalEmvs) sum += r.terminalEmvs[id];
+    close(sum, r.summary.mean, 1e-9);
+  });
 });
 
 // ── Report ────────────────────────────────────────────────────────────────

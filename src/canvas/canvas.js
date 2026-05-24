@@ -15,7 +15,10 @@ export function createCanvasController(canvasEl) {
   let tree = null;
   let selectedId = null;
   let hoveredId = null;
+  let stickyHoverId = null;     // hover-popover target — persists past mouseleave
+  let stickyHoverTimer = null;  // setTimeout handle that clears stickyHoverId
   let bestPathIds = new Set();
+  let terminalEmvs = null;      // { [terminalId]: emv } after a simulation runs
   let pan = { x: 0, y: 0 };
   let zoom = 1;
 
@@ -75,12 +78,34 @@ export function createCanvasController(canvasEl) {
   }
 
   function pickHoverPlus(wx, wy) {
-    if (!hoveredId || !tree) return null;
-    const n = tree.nodes.find(n => n.id === hoveredId);
+    const targetId = stickyHoverId || hoveredId;
+    if (!targetId || !tree) return null;
+    const n = tree.nodes.find(n => n.id === targetId);
     if (!n || n.type === 'terminal') return null;
     const port = hoverPlusPort(n);
     const dx = wx - port.x, dy = wy - port.y;
     return (dx * dx + dy * dy <= HOVER_PLUS_RADIUS * HOVER_PLUS_RADIUS) ? n : null;
+  }
+
+  // Sticky-hover behaviour: once the "+" is showing for a node, keep it
+  // showing for STICKY_MS after the cursor leaves the node, so the user has
+  // time to move toward the "+" without it vanishing.
+  const STICKY_MS = 800;
+  function markStickyHover(nodeId) {
+    stickyHoverId = nodeId;
+    if (stickyHoverTimer) clearTimeout(stickyHoverTimer);
+    stickyHoverTimer = null;
+  }
+  function startStickyClear() {
+    if (stickyHoverTimer) clearTimeout(stickyHoverTimer);
+    stickyHoverTimer = setTimeout(() => {
+      stickyHoverId = null;
+      stickyHoverTimer = null;
+      draw();
+    }, STICKY_MS);
+  }
+  function cancelStickyClear() {
+    if (stickyHoverTimer) { clearTimeout(stickyHoverTimer); stickyHoverTimer = null; }
   }
 
   function mouseToCanvas(e) {
@@ -134,12 +159,33 @@ export function createCanvasController(canvasEl) {
       const prev = hoveredId;
       const n = pickNode(w.x, w.y);
       hoveredId = n ? n.id : null;
-      if (prev !== hoveredId) draw();
+
+      // Sticky-hover bookkeeping. If cursor sits on a + or non-terminal node,
+      // mark it sticky and cancel any pending clear. Otherwise start a delayed
+      // clear so the + lingers long enough for the user to aim at it.
+      const onPlus = pickHoverPlus(w.x, w.y);
+      if (onPlus) {
+        markStickyHover(onPlus.id);
+      } else if (n && n.type !== 'terminal') {
+        markStickyHover(n.id);
+      } else if (stickyHoverId) {
+        startStickyClear();
+      }
+
+      if (prev !== hoveredId || onPlus) draw();
     }
   });
 
   canvasEl.addEventListener('mouseup', () => { dragging = null; dragNode = null; });
-  canvasEl.addEventListener('mouseleave', () => { dragging = null; dragNode = null; hoveredId = null; draw(); });
+  canvasEl.addEventListener('mouseleave', () => {
+    dragging = null;
+    dragNode = null;
+    hoveredId = null;
+    // Don't kill stickyHover instantly — let the timer expire so the user can
+    // still reach the popover if it's open just outside the canvas.
+    if (stickyHoverId) startStickyClear();
+    draw();
+  });
 
   canvasEl.addEventListener('wheel', e => {
     e.preventDefault();
@@ -180,7 +226,9 @@ export function createCanvasController(canvasEl) {
       drawNode(ctx, n, {
         selected: n.id === selectedId,
         best: bestPathIds.has(n.id),
-        hover: n.id === hoveredId
+        hover: n.id === hoveredId || n.id === stickyHoverId,
+        emv: terminalEmvs ? terminalEmvs[n.id] : undefined,
+        currency: tree.meta?.currency || '$'
       });
     }
   }
@@ -197,6 +245,8 @@ export function createCanvasController(canvasEl) {
     setSelection(id) { selectedId = id; draw(); },
     getSelectedId() { return selectedId; },
     setBestPath(ids) { bestPathIds = new Set(ids || []); draw(); },
+    setTerminalEmvs(map) { terminalEmvs = map || null; draw(); },
+    clearTerminalEmvs() { terminalEmvs = null; draw(); },
     refreshTheme() { refreshPalette(); draw(); },
     autoLayout() {
       if (!tree) return;

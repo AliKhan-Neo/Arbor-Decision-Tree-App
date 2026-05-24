@@ -12,6 +12,7 @@
 import { getNode, childrenOf, fixed, tri, uni, betaInput, logn, tnorm, addNode, removeSubtree } from '../model/tree.js';
 import { chanceBranchSum, SIGMA_OK, SIGMA_LOW, SIGMA_HIGH } from '../model/validation.js';
 import { meanOfInput } from '../sim/distributions.js';
+import { drawDistributionPreview } from './distributionPreview.js';
 
 const PROB_DIST_TYPES = ['triangular', 'beta', 'uniform'];
 const PAY_DIST_TYPES  = ['triangular', 'lognormal', 'truncnormal', 'uniform'];
@@ -51,9 +52,21 @@ export function createInspector(container, onChange) {
     }
     container.innerHTML = nodeHtml(tree, n);
     wireFields(container, tree, n, onChange);
+    // Draw distribution previews on the next frame (after layout settles).
+    requestAnimationFrame(() => redrawPreviews(container, n));
   }
 
-  return { setTree, setSelection, refresh };
+  return { setTree, setSelection, refresh, redrawPreviewsFor: id => {
+    const n = id ? getNode(tree, id) : (selectedId ? getNode(tree, selectedId) : null);
+    if (n) redrawPreviews(container, n);
+  }};
+}
+
+function redrawPreviews(container, node) {
+  const probCanvas = container.querySelector('canvas[data-preview="prob"]');
+  if (probCanvas) drawDistributionPreview(probCanvas, node.branchProb);
+  const payCanvas = container.querySelector('canvas[data-preview="pay"]');
+  if (payCanvas) drawDistributionPreview(payCanvas, node.payoff);
 }
 
 function emptyHtml() {
@@ -165,6 +178,9 @@ function inputDescriptorHtml(prefix, input, distTypes) {
         </select>
       </div>
       ${paramFields}
+      <div class="dist-preview-wrap">
+        <canvas class="dist-preview" data-preview="${prefix}"></canvas>
+      </div>
     `}
   `;
 }
@@ -265,6 +281,9 @@ function wireFields(container, tree, node, onChange) {
       // Refresh `fixed` to the mean so toggling back to fixed shows a sane value.
       target.fixed = meanOfInput(target);
       node[targetField] = target;
+      // Live-update the inline preview chart for the input being edited.
+      const canvas = container.querySelector(`canvas[data-preview="${prefix}"]`);
+      if (canvas) drawDistributionPreview(canvas, target);
       onChange({ kind: 'distParam', noRedrawInspector: true });
     });
   }

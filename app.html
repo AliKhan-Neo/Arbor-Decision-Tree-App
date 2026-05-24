@@ -34,6 +34,7 @@
     <div id="header-actions-pre"></div>
 
     <button class="btn" id="btn-layout">Auto Layout</button>
+    <button class="btn" id="btn-results">Results</button>
     <button class="btn" id="btn-export-pdf"><span style="color:var(--accent)">⬡</span> PDF</button>
     <button class="btn" id="btn-export-svg"><span style="color:var(--accent)">⬡</span> SVG</button>
     <button class="btn" id="btn-export-xlsx"><span style="color:var(--accent)">⬡</span> Excel</button>
@@ -62,6 +63,10 @@
     </div>
 
     <aside class="inspector" id="inspector">
+      <div class="resize-handle h" id="inspector-handle" aria-hidden="true"></div>
+      <button class="rail-toggle inspector-rail-toggle" id="inspector-toggle" type="button" aria-label="Toggle inspector">
+        <span class="toggle-text">›</span>
+      </button>
       <div class="inspector-header">
         <div class="inspector-title">Inspector</div>
         <div class="inspector-sub">Selected node</div>
@@ -71,7 +76,12 @@
   </div>
 
   <!-- DASHBOARD -->
-  <section class="dashboard" id="dashboard"></section>
+  <section class="dashboard" id="dashboard">
+    <div class="resize-handle v" id="dashboard-handle" aria-hidden="true"></div>
+    <button class="rail-toggle dashboard-rail-toggle" id="dashboard-toggle" type="button" aria-label="Toggle dashboard">
+      <span class="toggle-text">⌄</span>
+    </button>
+  </section>
 
 </div>
 

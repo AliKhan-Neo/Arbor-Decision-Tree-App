@@ -8,7 +8,9 @@ import { createInspector } from './ui/inspector.js';
 import { createDashboard } from './ui/dashboard.js';
 import { createAnimation } from './ui/animation.js';
 import { createProModal } from './ui/modals.js';
+import { createResultsModal } from './ui/resultsModal.js';
 import { initTheme, mountThemeToggle } from './ui/themeToggle.js';
+import { initPanels } from './ui/panels.js';
 
 import { saveTree, loadTree } from './model/persistence.js';
 import {
@@ -16,9 +18,8 @@ import {
   fixed, tri
 } from './model/tree.js';
 
-import { rollbackMean, rollbackOnce } from './sim/rollback.js';
+import { rollbackMean } from './sim/rollback.js';
 import { runMonteCarloChunked } from './sim/monteCarlo.js';
-import { makeRng } from './sim/rng.js';
 
 const fmt = (v, cur = '$') => {
   if (v === null || v === undefined || isNaN(v)) return '—';
@@ -50,6 +51,7 @@ const dashboard = createDashboard(dashboardEl);
 
 const animation = createAnimation(canvasWrap, canvasCtl);
 const proModal = createProModal();
+const resultsModal = createResultsModal();
 
 const hoverPopover = createHoverPopover((type, ctx) => {
   // Add a child of the selected type next to the parent.
@@ -77,6 +79,14 @@ const themeBtn = mountThemeToggle(document.getElementById('header-actions-pre'),
   if (lastResult) dashboard.render(lastResult, tree.meta.currency);
 });
 
+// Inspector + dashboard collapse/resize. Reflow canvas when sizes change.
+initPanels({
+  onResize: () => {
+    canvasCtl.resize();
+    if (lastResult) dashboard.render(lastResult, tree.meta.currency);
+  }
+});
+
 // ── 2. Wire canvas → inspector ──────────────────────────────────────────
 canvasCtl.on('select', ({ node }) => {
   inspector.setSelection(node.id);
@@ -102,6 +112,7 @@ document.getElementById('btn-new').addEventListener('click', () => {
   if (!confirm('Replace the current tree with a new one?')) return;
   tree = defaultHydrogenTree();
   lastResult = null;
+  canvasCtl.clearTerminalEmvs();
   canvasCtl.setTree(tree);
   inspector.setTree(tree);
   inspector.setSelection(null);
@@ -111,6 +122,7 @@ document.getElementById('btn-new').addEventListener('click', () => {
 });
 
 document.getElementById('btn-simulate').addEventListener('click', runSimulation);
+document.getElementById('btn-results').addEventListener('click', () => resultsModal.show(lastResult, tree));
 
 document.getElementById('btn-export-pdf').addEventListener('click', () => proModal.show('pdf'));
 document.getElementById('btn-export-svg').addEventListener('click', () => proModal.show('svg'));
@@ -137,6 +149,11 @@ function onInspectorChange(evt) {
   } else if (evt.kind === 'addChild' && evt.newNodeId) {
     canvasCtl.setSelection(evt.newNodeId);
     inspector.setSelection(evt.newNodeId);
+  }
+  // Any structural / param edit invalidates last simulation's EMVs.
+  if (evt.kind !== 'label' && evt.kind !== 'branchLabel') {
+    canvasCtl.clearTerminalEmvs();
+    lastResult = null;
   }
   redraw();
   if (!evt.noRedrawInspector) inspector.refresh();
@@ -233,6 +250,9 @@ async function runSimulation() {
   if (!rootOf(tree)) { alert('Add a root node first.'); return; }
   isSimulating = true;
 
+  // Clear any prior post-sim state so the canvas reflects pristine entry.
+  canvasCtl.clearTerminalEmvs();
+
   const statusBar = document.getElementById('status-bar');
   const statusText = document.getElementById('status-bar-text');
   const statusFill = document.getElementById('status-bar-fill');
@@ -240,39 +260,53 @@ async function runSimulation() {
   statusText.textContent = 'Initialising…';
   statusFill.style.width = '0%';
 
-  // Pre-sample a batch of paths to feed the animation's exploration phase.
-  // Using a separate RNG so it doesn't disturb the production simulation's
-  // determinism (the sim re-makes the RNG from the seed below).
-  const previewRng = makeRng((tree.meta.seed | 0) + 7);
-  const previewPaths = [];
-  for (let i = 0; i < 60; i++) {
-    const { ev, optimalPath } = rollbackOnce(tree, previewRng);
-    previewPaths.push(pathIdsFromLabels(optimalPath));
-  }
+  // Path stream — appended to by MC progress, drained by the animation.
+  const livePathStream = [];
 
-  // Kick off the animation in parallel with the MC.
-  const animPromise = animation.play({
-    getSampledPaths: () => previewPaths,
-    getBestPath:     () => bestPathFromMean(tree),
-    getNodeById:     id => getNode(tree, id)
-  });
-
-  const result = await runMonteCarloChunked(tree, {
+  // Kick off MC. We hold the promise so the animation can await it.
+  const mcPromise = runMonteCarloChunked(tree, {
     seed: tree.meta.seed,
     iterations: tree.meta.iterations,
-    onProgress: ({ iterations, total }) => {
+    onProgress: ({ iterations, total, pathStream }) => {
+      // pathStream is the SAME array MC pushes into, so livePathStream just
+      // tracks its tail. For now copy newly-arrived paths in.
+      while (livePathStream.length < pathStream.length) {
+        livePathStream.push(pathStream[livePathStream.length]);
+      }
       const pct = total ? Math.round(iterations / total * 100) : 0;
       statusText.textContent = `Iteration ${iterations.toLocaleString()} / ${total.toLocaleString()}`;
       statusFill.style.width = pct + '%';
     }
   });
 
-  await animPromise;
+  // Animation runs in parallel and consumes from the stream.
+  // For the convergence phase we use the mean-state best path; the persistent
+  // canvas best-path overlay is updated to the MC's most-frequent optimal
+  // path *after* the sim completes (below).
+  let mcResult = null;
+  const animPromise = animation.play({
+    getPathStream:   () => livePathStream,
+    getBestPath:     () => mcResult
+                            ? pathIdsFromLabels(mcResult.stability[0]?.path.split(' → ') || [])
+                            : bestPathFromMean(tree),
+    getNodeById:     id => getNode(tree, id),
+    awaitSimulation: mcPromise.then(r => { mcResult = r; return r; })
+  });
+
+  const [result] = await Promise.all([mcPromise, animPromise]);
+
+  // Recompute best-path from MC stability (most-frequent optimal path).
+  const topPath = result.stability[0];
+  if (topPath) {
+    const ids = pathIdsFromLabels(topPath.path.split(' → '));
+    canvasCtl.setBestPath(ids);
+  }
+  canvasCtl.setTerminalEmvs(result.terminalEmvs);
 
   lastResult = result;
   dashboard.render(result, tree.meta.currency);
   dashboardEl.classList.remove('collapsed');
-  document.getElementById('dash-toggle').textContent = 'Hide';
+  localStorage.setItem('arbor:panel:dashboard:closed', '0');
   updateHeaderStats();
 
   statusText.textContent = `Done · mean ${fmt(result.summary.mean, tree.meta.currency)} · stdev ${fmt(result.summary.stdev, tree.meta.currency)}`;

@@ -1,14 +1,19 @@
 // 4-phase pathway exploration animation.
 //
-// Phases (BRIEF §0):
-//   1. Sweep       — a vertical beam crosses the tree from left to right.
-//   2. Exploration — many translucent traces of sampled paths flash through.
-//   3. Convergence — traces collapse onto the optimal (best-EV) path.
-//   4. Reveal      — dashboard slides in (handled by caller via callback).
+// Phases:
+//   1. Sweep       — a vertical beam crosses the tree left-to-right.
+//   2. Exploration — streams each iteration's best path through the tree.
+//                    A short ghost-trail of the last N paths fades out so the
+//                    eye sees the search bouncing across alternatives.
+//   3. Convergence — collapses onto the overall optimal best-EV path.
+//   4. Reveal      — dashboard slides in (caller's responsibility).
 //
-// The animation overlay is its own <canvas> on top of the main one.
-// It does not affect the tree state; it only consumes positions from the
-// canvas controller's world-to-screen transform.
+// The animation runs in parallel with the Monte Carlo loop on the main
+// thread. Exploration consumes from a live path stream so the eye-candy
+// reflects what the simulator is actually computing.
+
+const TRAIL_LEN = 6;          // recent-path ghost trail length
+const FRAME_PATH_MS = 60;     // how long each new path lingers before fading
 
 export function createAnimation(canvasWrap, mainCanvasCtl) {
   const overlay = document.createElement('div');
@@ -41,28 +46,29 @@ export function createAnimation(canvasWrap, mainCanvasCtl) {
     label.classList.toggle('show', !!text);
   }
 
-  // Run the four phases. `getSampledPaths()` returns an array of arrays of
-  // node-id sequences to draw during exploration (we use ~80 sampled paths).
-  // `getBestPath()` returns the final optimal path node ids.
-  async function play({ getSampledPaths, getBestPath, getNodeById }) {
+  // Run all phases.
+  // opts:
+  //   getPathStream() -> array of path-id arrays accumulated so far
+  //   getBestPath()   -> final optimal path-id array (must be available before phase 3)
+  //   getNodeById(id) -> node lookup
+  //   awaitSimulation -> Promise that resolves when MC finishes
+  async function play(opts) {
     resize();
-    const tree = mainCanvasCtl.getTree();
-    if (!tree) return;
+    if (!mainCanvasCtl.getTree()) return;
 
-    // Phase 1: sweep
+    // Phase 1
     setLabel('Exploring possibilities');
-    await sweep(canvas, ctx, canvasWrap.getBoundingClientRect());
+    await sweep(ctx, canvasWrap.getBoundingClientRect());
 
-    // Phase 2: exploration
-    const paths = getSampledPaths();
-    await explore(canvas, ctx, canvasWrap.getBoundingClientRect(), paths, mainCanvasCtl, getNodeById);
+    // Phase 2 — runs until simulation finishes
+    await explore(ctx, canvasWrap.getBoundingClientRect(), opts.getPathStream,
+                  opts.getNodeById, mainCanvasCtl, opts.awaitSimulation);
 
-    // Phase 3: convergence
+    // Phase 3
     setLabel('Converging on optimal path');
-    const best = getBestPath();
-    await converge(canvas, ctx, canvasWrap.getBoundingClientRect(), best, mainCanvasCtl, getNodeById);
+    await converge(ctx, canvasWrap.getBoundingClientRect(),
+                   opts.getBestPath(), opts.getNodeById, mainCanvasCtl);
 
-    // Phase 4: caller handles dashboard reveal
     setLabel('');
     clearOverlay();
   }
@@ -70,23 +76,23 @@ export function createAnimation(canvasWrap, mainCanvasCtl) {
   return { play, clear: clearOverlay, resize };
 }
 
-async function sweep(canvas, ctx, rect) {
+async function sweep(ctx, rect) {
   const cs = getComputedStyle(document.documentElement);
   const accent = cs.getPropertyValue('--accent').trim();
-  const duration = 600;
+  const duration = 480;
   const t0 = performance.now();
   await new Promise(resolve => {
     function frame(t) {
       const p = Math.min(1, (t - t0) / duration);
       ctx.clearRect(0, 0, rect.width, rect.height);
       const x = p * rect.width;
-      const grad = ctx.createLinearGradient(x - 60, 0, x + 60, 0);
+      const grad = ctx.createLinearGradient(x - 80, 0, x + 80, 0);
       grad.addColorStop(0, 'rgba(0,0,0,0)');
       grad.addColorStop(0.5, accent);
       grad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = grad;
       ctx.globalAlpha = 0.35;
-      ctx.fillRect(x - 60, 0, 120, rect.height);
+      ctx.fillRect(x - 80, 0, 160, rect.height);
       ctx.globalAlpha = 1;
       if (p < 1) requestAnimationFrame(frame);
       else resolve();
@@ -96,36 +102,56 @@ async function sweep(canvas, ctx, rect) {
   ctx.clearRect(0, 0, rect.width, rect.height);
 }
 
-async function explore(canvas, ctx, rect, paths, ctl, getNodeById) {
-  if (!paths || !paths.length) return;
+// Streaming exploration. Each tick draws a small trail of recent best-paths:
+// the most recent is brightest, older ones fade out. Continues until
+// `awaitSimulation` resolves (then exits cleanly).
+async function explore(ctx, rect, getPathStream, getNodeById, ctl, awaitSimulation) {
   const cs = getComputedStyle(document.documentElement);
   const accent = cs.getPropertyValue('--accent').trim();
-  const duration = 1200;
-  const t0 = performance.now();
+  const hero   = cs.getPropertyValue('--hero').trim();
+
+  let done = false;
+  awaitSimulation.then(() => { done = true; });
+
+  let nextCursor = 0;
+  const trail = [];
 
   await new Promise(resolve => {
-    function frame(t) {
-      const p = Math.min(1, (t - t0) / duration);
+    function frame() {
+      const stream = getPathStream();
+      // Pull all newly available paths into the trail, but step at ~1 per frame
+      // so the animation actually shows distinct iterations rather than
+      // a blur. Cap the trail length so the screen doesn't get too busy.
+      const availableNew = Math.min(2, stream.length - nextCursor);
+      for (let k = 0; k < availableNew; k++) {
+        trail.push(stream[nextCursor++]);
+        if (trail.length > TRAIL_LEN) trail.shift();
+      }
+
       ctx.clearRect(0, 0, rect.width, rect.height);
-      const showCount = Math.min(paths.length, Math.floor(paths.length * p));
-      ctx.strokeStyle = accent;
-      ctx.globalAlpha = 0.12;
-      ctx.lineWidth = 1.2;
-      for (let i = 0; i < showCount; i++) {
-        drawPath(ctx, paths[i], ctl, getNodeById);
+      // Draw oldest first so newest sits on top.
+      for (let i = 0; i < trail.length; i++) {
+        const age = trail.length - 1 - i;              // 0 = newest
+        const alpha = 0.10 + 0.55 * (1 - age / TRAIL_LEN);
+        const isNewest = age === 0;
+        ctx.strokeStyle = isNewest ? hero : accent;
+        ctx.lineWidth   = isNewest ? 2.4 : 1.4;
+        ctx.globalAlpha = alpha;
+        drawPath(ctx, trail[i], ctl, getNodeById);
       }
       ctx.globalAlpha = 1;
-      if (p < 1) requestAnimationFrame(frame);
-      else resolve();
+
+      if (done && nextCursor >= stream.length) resolve();
+      else requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
   });
 }
 
-async function converge(canvas, ctx, rect, bestPath, ctl, getNodeById) {
+async function converge(ctx, rect, bestPath, getNodeById, ctl) {
   const cs = getComputedStyle(document.documentElement);
   const hero = cs.getPropertyValue('--hero').trim();
-  const duration = 800;
+  const duration = 700;
   const t0 = performance.now();
 
   await new Promise(resolve => {
@@ -133,7 +159,7 @@ async function converge(canvas, ctx, rect, bestPath, ctl, getNodeById) {
       const p = Math.min(1, (t - t0) / duration);
       ctx.clearRect(0, 0, rect.width, rect.height);
       ctx.strokeStyle = hero;
-      ctx.lineWidth = 2 + 2 * p;
+      ctx.lineWidth = 2 + 2.5 * p;
       ctx.globalAlpha = 0.4 + 0.6 * p;
       drawPath(ctx, bestPath, ctl, getNodeById);
       ctx.globalAlpha = 1;

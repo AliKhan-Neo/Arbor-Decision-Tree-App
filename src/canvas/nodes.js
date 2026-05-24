@@ -142,21 +142,29 @@ export function drawNode(ctx, node, opts = {}) {
     ctx.font = '500 11px Inter, system-ui, sans-serif';
     ctx.fillText(trunc(node.label, 14), node.x, node.y + 14);
   } else {
-    // Terminal: rounded rectangle with label + payoff inside.
+    // Terminal: rounded rectangle with label + payoff (+ optional EMV) inside.
+    const hasEmv = typeof opts.emv === 'number';
     rrectPath(ctx, node.x - TER.w / 2, node.y - TER.h / 2, TER.w, TER.h, TER.r);
     ctx.fill();
     ctx.stroke();
+    const cur = opts.currency || '$';
     ctx.fillStyle = p.text;
-    ctx.font = '600 13px Inter, system-ui, sans-serif';
+    ctx.font = '600 12px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(trunc(node.label, 22), node.x, node.y - 8);
+    ctx.fillText(trunc(node.label, 22), node.x, hasEmv ? node.y - 16 : node.y - 8);
     // Payoff line in mono.
     const mu = node.payoff ? meanOfInput(node.payoff) : 0;
     const tag = node.payoff?.mode === 'distribution' ? ' · μ' : '';
     ctx.fillStyle = mu >= 0 ? p.accent : p.hero;
     ctx.font = '500 11px "DM Mono", ui-monospace, monospace';
-    ctx.fillText(fmt(mu, '$') + tag, node.x, node.y + 12);
+    ctx.fillText(fmt(mu, cur) + tag, node.x, hasEmv ? node.y : node.y + 12);
+    // EMV contribution (shown post-simulation).
+    if (hasEmv) {
+      ctx.fillStyle = p.hero;
+      ctx.font = '500 10px "DM Mono", ui-monospace, monospace';
+      ctx.fillText('EMV ' + fmt(opts.emv, cur), node.x, node.y + 16);
+    }
   }
 
   // Hover "+" hotspot indicator (only on chance & decision — terminals don't

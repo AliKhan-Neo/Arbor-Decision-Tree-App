@@ -2,6 +2,8 @@
 //
 // Phase 1: PDF view only. Phase 2 adds PDF/CDF tab toggle on the histogram.
 
+import { drawTornado } from './tornadoChart.js';
+
 const fmt = (v, cur = '$') => {
   if (v === null || v === undefined || isNaN(v)) return '—';
   const a = Math.abs(v);
@@ -12,7 +14,7 @@ const fmt = (v, cur = '$') => {
   return `${s}${cur}${a.toFixed(0)}`;
 };
 
-const TPL = `
+const PANELS_HTML = `
   <div class="dash-panel" id="dash-summary">
     <div class="dash-h">Expected Value</div>
     <div class="summary-grid" id="dash-summary-grid">
@@ -34,20 +36,14 @@ const TPL = `
   </div>
   <div class="dash-panel" id="dash-tor">
     <div class="dash-h">Tornado · Drivers</div>
-    <div id="dash-tor-list"></div>
-  </div>
-  <div class="dash-toggle-row">
-    <button class="btn btn-ghost btn-small" id="dash-toggle">Hide</button>
+    <div class="tornado-canvas-wrap"><canvas id="dash-tor-canvas"></canvas></div>
   </div>
 `;
 
 export function createDashboard(container) {
-  container.innerHTML = TPL;
-  const toggle = container.querySelector('#dash-toggle');
-  toggle.addEventListener('click', () => {
-    container.classList.toggle('collapsed');
-    toggle.textContent = container.classList.contains('collapsed') ? 'Show' : 'Hide';
-  });
+  // Insert panels WITHOUT wiping the existing children (rail toggle + handle
+  // are already in the HTML and panels.js owns them).
+  container.insertAdjacentHTML('beforeend', PANELS_HTML);
 
   function render(result, currency) {
     if (!result) return;
@@ -63,14 +59,18 @@ export function createDashboard(container) {
 
     drawHistogram(container.querySelector('#dash-hist-canvas'), result.histogram, result.percentiles, cur);
     renderStability(container.querySelector('#dash-stab-list'), result.stability);
-    renderTornado(container.querySelector('#dash-tor-list'), result.tornado, cur);
+    drawTornado(container.querySelector('#dash-tor-canvas'), result.tornado, { currency: cur, max: 6, labelCol: 130 });
   }
 
   function clear() {
     const grid = container.querySelector('#dash-summary-grid');
     grid.querySelectorAll('.sum-cell .v').forEach(c => (c.textContent = '—'));
     container.querySelector('#dash-stab-list').innerHTML = '';
-    container.querySelector('#dash-tor-list').innerHTML = '';
+    const tc = container.querySelector('#dash-tor-canvas');
+    if (tc) {
+      const ctx = tc.getContext('2d');
+      ctx.clearRect(0, 0, tc.width, tc.height);
+    }
     const c = container.querySelector('#dash-hist-canvas');
     const ctx = c.getContext('2d');
     ctx.clearRect(0, 0, c.width, c.height);
@@ -154,21 +154,6 @@ function renderStability(el, stability) {
       <span class="pct">${(s.pct * 100).toFixed(1)}%</span>
     </div>
   `).join('');
-}
-
-function renderTornado(el, tornado, currency) {
-  if (!tornado || !tornado.drivers || !tornado.drivers.length) { el.innerHTML = ''; return; }
-  const top = tornado.drivers.slice(0, 6);
-  const maxDelta = top[0].delta || 1;
-  el.innerHTML = top.map(d => {
-    const w = Math.round((d.delta / maxDelta) * 100);
-    return `
-      <div class="tornado-row">
-        <span class="lbl" title="${escAttr(d.label)}">${escText(d.label)} — ${fmt(d.delta, currency)}</span>
-        <div class="tornado-bar"><div class="fill" style="width:${w}%"></div></div>
-      </div>
-    `;
-  }).join('');
 }
 
 function escAttr(s) { return String(s).replace(/"/g, '&quot;'); }

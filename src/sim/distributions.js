@@ -51,8 +51,9 @@ export const triangular = {
 export const uniform = {
   sample(p, rng) { return p.min + (p.max - p.min) * rng(); },
   mean(p)  { return (p.min + p.max) / 2; },
-  p5(p)    { return p.min + 0.05 * (p.max - p.min); },
-  p95(p)   { return p.min + 0.95 * (p.max - p.min); },
+  quantile(p, q) { return p.min + q * (p.max - p.min); },
+  p5(p)    { return this.quantile(p, 0.05); },
+  p95(p)   { return this.quantile(p, 0.95); },
   stdev(p) { return (p.max - p.min) / Math.sqrt(12); },
   valid(p) { return Number.isFinite(p.min) && Number.isFinite(p.max) && p.min < p.max; }
 };
@@ -73,6 +74,7 @@ export const beta = {
   // Analytical p5/p95 for Beta is the incomplete-beta inverse; approximate via
   // monotonic bisection on the regularised CDF. Good enough for tornado
   // labelling at 1e-4 precision.
+  quantile(p, q) { return betaQuantile(p.alpha, p.beta, q); },
   p5(p)    { return betaQuantile(p.alpha, p.beta, 0.05); },
   p95(p)   { return betaQuantile(p.alpha, p.beta, 0.95); },
   stdev(p) {
@@ -176,6 +178,7 @@ export const lognormal = {
   },
   mean(p)  { return Math.exp(p.mu + p.sigma * p.sigma / 2); },
   // exact percentiles via inverse normal CDF
+  quantile(p, q) { return Math.exp(p.mu + p.sigma * inverseNormalCdf(Math.min(Math.max(q, 1e-9), 1 - 1e-9))); },
   p5(p)    { return Math.exp(p.mu + p.sigma * inverseNormalCdf(0.05)); },
   p95(p)   { return Math.exp(p.mu + p.sigma * inverseNormalCdf(0.95)); },
   stdev(p) {
@@ -207,6 +210,7 @@ export const truncnormal = {
     const PhiB = standardNormalCdf(b);
     return p.mu + p.sigma * (phiA - phiB) / (PhiB - PhiA);
   },
+  quantile(p, q) { return inverseTruncNormal(p, q); },
   p5(p)    { return inverseTruncNormal(p, 0.05); },
   p95(p)   { return inverseTruncNormal(p, 0.95); },
   stdev(p) {
