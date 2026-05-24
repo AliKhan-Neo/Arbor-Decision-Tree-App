@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="src/styles/app.css">
   <link rel="stylesheet" href="src/styles/components.css">
   <!-- Export dependencies (loaded only on app.html — landing page stays untouched). -->
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
@@ -58,10 +58,10 @@
         <span class="hint">hover · click + to add child</span>
       </div>
 
-      <!-- Simulation progress (created by main.js) -->
-      <div class="status-bar" id="status-bar">
-        <span id="status-bar-text">Initialising…</span>
-        <div class="progress"><div class="fill" id="status-bar-fill"></div></div>
+      <!-- Simulation progress / completion pill (centred on the canvas) -->
+      <div class="sim-pill" id="sim-pill" role="status" aria-live="polite">
+        <span class="sim-pill-text" id="sim-pill-text">Running simulation</span>
+        <div class="sim-pill-progress"><div class="fill" id="sim-pill-fill"></div></div>
       </div>
     </div>
 

@@ -14,6 +14,8 @@ import { exportSvg } from './export/svgExport.js';
 import { exportPdf } from './export/pdfReport.js';
 import { initTheme, mountThemeToggle } from './ui/themeToggle.js';
 import { initPanels } from './ui/panels.js';
+import { createQaChecker } from './ui/qaCheck.js';
+import { createSettingsBox } from './ui/settingsBox.js';
 
 import { saveTree, loadTree } from './model/persistence.js';
 import {
@@ -55,6 +57,19 @@ const dashboard = createDashboard(dashboardEl);
 const animation = createAnimation(canvasWrap, canvasCtl);
 const proModal = createProModal();
 const resultsModal = createResultsModal();
+
+const qaCheck = createQaChecker(canvasWrap, {
+  onFocusNode: id => {
+    canvasCtl.setSelection(id);
+    inspector.setSelection(id);
+  }
+});
+const settingsBox = createSettingsBox(canvasWrap, {
+  onChange: () => {
+    persist();
+    updateHeaderStats();
+  }
+});
 
 const hoverPopover = createHoverPopover((type, ctx) => {
   // Add a child of the selected type next to the parent.
@@ -119,6 +134,8 @@ document.getElementById('btn-new').addEventListener('click', () => {
   canvasCtl.setTree(tree);
   inspector.setTree(tree);
   inspector.setSelection(null);
+  qaCheck.setTree(tree);
+  settingsBox.setTree(tree);
   dashboard.clear();
   recomputeBestPath();
   persist();
@@ -141,11 +158,15 @@ document.getElementById('btn-export-svg').addEventListener('click', () => {
 });
 document.getElementById('btn-export-xlsx').addEventListener('click', async () => {
   if (!rootOf(tree)) { alert('Add a root node first.'); return; }
-  await exportExcel(tree);
+  await exportExcel(tree, {
+    histogramCanvas: document.getElementById('dash-hist-canvas')
+  });
 });
 
 // ── 4. Initial render ───────────────────────────────────────────────────
 inspector.setTree(tree);
+qaCheck.setTree(tree);
+settingsBox.setTree(tree);
 // Defer the canvas-size-dependent setup to the next frame so the browser has
 // completed layout (otherwise getBoundingClientRect() can return 0 on first
 // paint and fit-to-content sets zoom to 0 — empty canvas).
@@ -172,6 +193,7 @@ function onInspectorChange(evt) {
     lastResult = null;
   }
   redraw();
+  qaCheck.refresh();
   if (!evt.noRedrawInspector) inspector.refresh();
   persist();
 }
@@ -269,12 +291,16 @@ async function runSimulation() {
   // Clear any prior post-sim state so the canvas reflects pristine entry.
   canvasCtl.clearTerminalEmvs();
 
-  const statusBar = document.getElementById('status-bar');
-  const statusText = document.getElementById('status-bar-text');
-  const statusFill = document.getElementById('status-bar-fill');
-  statusBar.classList.add('show');
-  statusText.textContent = 'Initialising…';
-  statusFill.style.width = '0%';
+  // Dim the inspector + dashboard; show the centred running-simulation pill.
+  const appEl = document.querySelector('.app');
+  appEl.classList.add('is-simulating');
+  const pill     = document.getElementById('sim-pill');
+  const pillText = document.getElementById('sim-pill-text');
+  const pillFill = document.getElementById('sim-pill-fill');
+  pill.classList.remove('finished');
+  pill.classList.add('show');
+  pillText.textContent = 'Running simulation';
+  pillFill.style.width = '0%';
 
   // Path stream — appended to by MC progress, drained by the animation.
   const livePathStream = [];
@@ -290,8 +316,8 @@ async function runSimulation() {
         livePathStream.push(pathStream[livePathStream.length]);
       }
       const pct = total ? Math.round(iterations / total * 100) : 0;
-      statusText.textContent = `Iteration ${iterations.toLocaleString()} / ${total.toLocaleString()}`;
-      statusFill.style.width = pct + '%';
+      pillText.textContent = `Running simulation · ${pct}%`;
+      pillFill.style.width = pct + '%';
     }
   });
 
@@ -325,9 +351,14 @@ async function runSimulation() {
   localStorage.setItem('arbor:panel:dashboard:closed', '0');
   updateHeaderStats();
 
-  statusText.textContent = `Done · mean ${fmt(result.summary.mean, tree.meta.currency)} · stdev ${fmt(result.summary.stdev, tree.meta.currency)}`;
-  statusFill.style.width = '100%';
-  setTimeout(() => statusBar.classList.remove('show'), 2400);
+  // Switch the pill to its "finished" state, then fade out + un-dim panels.
+  pill.classList.add('finished');
+  pillText.textContent = 'Simulation finished';
+  pillFill.style.width = '100%';
+  setTimeout(() => {
+    pill.classList.remove('show');
+    appEl.classList.remove('is-simulating');
+  }, 1100);
 
   isSimulating = false;
 }

@@ -459,6 +459,141 @@ input[type=range]::-webkit-slider-thumb {
   cursor: pointer;
 }
 
+/* ── Canvas floating boxes (QA/QC + Settings) ───────────────────────── */
+.qa-root, .settings-root {
+  position: absolute;
+  top: 14px;
+  z-index: var(--z-overlay);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.qa-root      { left: 14px;  }
+.settings-root { right: 14px; }
+
+.qa-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+.qa-pill:hover { background: var(--line); }
+.qa-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 11px;
+  font-family: var(--sans);
+  color: var(--bg);
+}
+.qa-root[data-status="ok"]       .qa-glyph { background: var(--positive); }
+.qa-root[data-status="warnings"] .qa-glyph { background: var(--warn); }
+.qa-root[data-status="errors"]   .qa-glyph { background: var(--rust); }
+.qa-count {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+.qa-count:empty { display: none; }
+
+.qa-panel {
+  margin-top: 6px;
+  width: 320px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow-popover);
+  padding: 6px;
+}
+.qa-issue {
+  display: grid;
+  grid-template-columns: 8px 1fr;
+  align-items: start;
+  gap: 8px;
+  padding: 6px 8px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: var(--r-2);
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  transition: background var(--t-fast);
+}
+.qa-issue:hover { background: var(--line); }
+.qa-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+}
+.qa-issue-error .qa-dot { background: var(--rust); }
+.qa-issue-warn  .qa-dot { background: var(--warn); }
+.qa-issue-info  .qa-dot { background: var(--accent-soft); }
+.qa-msg { line-height: 1.35; }
+
+.settings-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+}
+.settings-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.settings-row {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.settings-field-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+.settings-input {
+  width: 90px;
+  height: 24px;
+  padding: 0 8px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-1);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  outline: none;
+  text-align: right;
+}
+.settings-input:focus { border-color: var(--accent); }
+
 /* ── Tooltip ────────────────────────────────────────────────────────── */
 .tip {
   position: fixed;

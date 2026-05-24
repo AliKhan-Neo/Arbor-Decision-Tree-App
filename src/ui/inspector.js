@@ -261,12 +261,16 @@ function wireFields(container, tree, node, onChange) {
       const prefix = e.target.dataset.disttype;
       const targetField = prefix === 'prob' ? 'branchProb' : 'payoff';
       const newType = e.target.value;
-      node[targetField] = {
+      const target = {
         ...(node[targetField] || {}),
         mode: 'distribution',
         distType: newType,
         params: { ...DIST_DEFAULTS[newType] }
       };
+      // Keep `fixed` synced to the new distribution's mean so toggling back to
+      // fixed-mode (or relying on it for QA/QC) reflects the actual params.
+      target.fixed = meanOfInput(target);
+      node[targetField] = target;
       onChange({ kind: 'distType' });
     });
   }
