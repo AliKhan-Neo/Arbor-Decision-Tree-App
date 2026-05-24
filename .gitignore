@@ -1,0 +1,13 @@
+# Build / dependency output (currently none — kept for future tooling)
+node_modules/
+dist/
+.vercel/
+
+# Verification artefacts (local-only screenshots, playwright runs)
+.playwright-mcp/
+phase*-*.png
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.log

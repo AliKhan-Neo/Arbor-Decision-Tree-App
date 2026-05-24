@@ -1,0 +1,10 @@
+{
+  "name": "arbor",
+  "version": "3.0.0-phase1",
+  "description": "Arbor — premium decision tree builder. Vanilla ES modules, no build step.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/engine.test.js"
+  }
+}

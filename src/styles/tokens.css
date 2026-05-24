@@ -1,0 +1,106 @@
+/*
+ * Arbor v3 — Design tokens
+ * Two-theme system. All colour, type, spacing, motion flows from here.
+ * `data-theme` on <html> switches between Warmed Ink (default) and Editorial Light.
+ */
+
+/* Theme A — Warmed Ink (default). */
+:root,
+:root[data-theme="warmed-ink"] {
+  --bg:           #1A1410;
+  --panel:        #221A14;
+  --inspector:    #1F1813;
+  --line:         rgba(244, 235, 220, 0.08);
+  --line-strong:  rgba(244, 235, 220, 0.18);
+
+  --text:         #F4EBDC;
+  --text-muted:   #B5A38B;
+  --text-faint:   rgba(244, 235, 220, 0.35);
+
+  --accent:       #D4A574;
+  --accent-soft:  #A88554;
+  --hero:         #C56B47;
+  --positive:     #8FA68E;
+  --warn:         #D4A23A;
+  --rust:         #B14A3A;
+
+  --node-fill:        #221A14;
+  --node-stroke:      rgba(244, 235, 220, 0.22);
+  --node-stroke-sel:  var(--accent);
+  --node-stroke-best: var(--hero);
+
+  --conn-default: rgba(244, 235, 220, 0.25);
+  --conn-best:    var(--hero);
+
+  --histogram-fill: var(--hero);
+  --grid:           rgba(244, 235, 220, 0.06);
+
+  --modal-overlay:  rgba(10, 7, 5, 0.78);
+
+  --shadow-node-sel: 0 0 0 1px var(--accent), 0 6px 22px rgba(213, 165, 116, 0.25);
+  --shadow-popover:  0 14px 38px rgba(0, 0, 0, 0.55);
+}
+
+/* Theme B — Editorial Light. */
+:root[data-theme="editorial-light"] {
+  --bg:           #F5F0E6;
+  --panel:        #EEE7D7;
+  --inspector:    #FAF6EC;
+  --line:         rgba(12, 35, 64, 0.10);
+  --line-strong:  rgba(12, 35, 64, 0.22);
+
+  --text:         #0C2340;
+  --text-muted:   #5D6B7D;
+  --text-faint:   rgba(12, 35, 64, 0.35);
+
+  --accent:       #B0863D;
+  --accent-soft:  #8C6A2F;
+  --hero:         #D97757;
+  --positive:     #7A9E87;
+  --warn:         #C58A2C;
+  --rust:         #A84A38;
+
+  --node-fill:        #FAF6EC;
+  --node-stroke:      rgba(12, 35, 64, 0.30);
+  --node-stroke-sel:  var(--accent);
+  --node-stroke-best: var(--hero);
+
+  --conn-default: rgba(12, 35, 64, 0.30);
+  --conn-best:    var(--hero);
+
+  --histogram-fill: var(--hero);
+  --grid:           rgba(12, 35, 64, 0.08);
+
+  --modal-overlay:  rgba(245, 240, 230, 0.85);
+
+  --shadow-node-sel: 0 0 0 1px var(--accent), 0 6px 22px rgba(176, 134, 61, 0.30);
+  --shadow-popover:  0 12px 36px rgba(12, 35, 64, 0.18);
+}
+
+/* Typography, spacing, motion — shared across themes. */
+:root {
+  --serif:    'Cormorant Garamond', Georgia, serif;
+  --display:  'Syne', system-ui, sans-serif;
+  --sans:     'Inter', system-ui, sans-serif;
+  --mono:     'DM Mono', ui-monospace, monospace;
+
+  --hdr-h:        56px;
+  --inspector-w:  320px;
+  --dashboard-h:  220px;
+
+  --r-1: 4px;
+  --r-2: 6px;
+  --r-3: 10px;
+  --r-4: 14px;
+
+  --t-fast:   120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-norm:   220ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-slow:   420ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --z-canvas:    1;
+  --z-overlay:   50;
+  --z-popover:   100;
+  --z-dashboard: 200;
+  --z-modal:     900;
+  --z-tooltip:   950;
+}

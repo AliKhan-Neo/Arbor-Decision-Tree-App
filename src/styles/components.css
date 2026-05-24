@@ -1,0 +1,373 @@
+/*
+ * Arbor v3 — Component primitives.
+ * Buttons, badges, inputs, popovers, modals, sliders. All themed via tokens.
+ */
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--r-2);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+  text-decoration: none;
+}
+.btn:hover { background: var(--line); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+.btn-primary:hover { background: var(--accent-soft); border-color: var(--accent-soft); }
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--text-muted);
+}
+.btn-ghost:hover { color: var(--text); background: var(--line); }
+
+.btn-danger {
+  border-color: var(--rust);
+  color: var(--rust);
+}
+.btn-danger:hover { background: var(--rust); color: var(--bg); }
+
+.btn-small {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 10px;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 14px;
+}
+
+/* ── Inputs ─────────────────────────────────────────────────────────── */
+.field {
+  margin-bottom: 14px;
+}
+.field-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.field-help {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-top: 4px;
+}
+.input, .select, textarea.input {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--r-2);
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  outline: none;
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+textarea.input { height: auto; padding: 8px 10px; resize: vertical; min-height: 60px; font-family: var(--sans); }
+.input:focus, .select:focus { border-color: var(--accent); }
+.input::placeholder { color: var(--text-faint); }
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.field-row > .field { margin-bottom: 0; }
+
+/* ── Inspector section ──────────────────────────────────────────────── */
+.section-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 18px 0 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.section-title:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* ── Distribution mode toggle (segmented) ───────────────────────────── */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+  overflow: hidden;
+  background: var(--bg);
+}
+.seg button {
+  flex: 1;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.seg button.on {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* ── Badges ─────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.badge-ok   { background: color-mix(in srgb, var(--positive) 22%, transparent); color: var(--positive); }
+.badge-warn { background: color-mix(in srgb, var(--warn) 22%, transparent);     color: var(--warn); }
+.badge-err  { background: color-mix(in srgb, var(--rust) 22%, transparent);     color: var(--rust); }
+.badge-pro  { background: color-mix(in srgb, var(--accent) 18%, transparent);   color: var(--accent); }
+
+/* ── Hover-popover (Make.com pattern) ───────────────────────────────── */
+.hp-root {
+  position: fixed;
+  z-index: var(--z-popover);
+  pointer-events: auto;
+}
+.hp-popover {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-3);
+  box-shadow: var(--shadow-popover);
+  min-width: 220px;
+  overflow: hidden;
+}
+.hp-popover button {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t-fast);
+}
+.hp-popover button:last-child { border-bottom: none; }
+.hp-popover button:hover { background: var(--line); }
+.hp-popover .hp-glyph {
+  font-family: var(--display);
+  font-size: 16px;
+  color: var(--accent);
+}
+.hp-popover .hp-label {
+  font-weight: 600;
+}
+.hp-popover .hp-hint {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Modal ──────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--modal-overlay);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--t-norm);
+}
+.modal-overlay.show {
+  opacity: 1;
+  pointer-events: all;
+}
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-4);
+  padding: 36px 36px 30px;
+  max-width: 440px;
+  width: 90%;
+  text-align: center;
+  transform: translateY(12px);
+  transition: transform var(--t-norm);
+  box-shadow: var(--shadow-popover);
+}
+.modal-overlay.show .modal { transform: translateY(0); }
+.modal-eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.modal-title {
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.15;
+  margin-bottom: 12px;
+}
+.modal-title em {
+  font-style: italic;
+  color: var(--hero);
+}
+.modal-desc {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.65;
+  margin-bottom: 22px;
+}
+.modal-features {
+  list-style: none;
+  margin-bottom: 24px;
+  text-align: left;
+}
+.modal-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text);
+}
+.modal-features li:last-child { border-bottom: none; }
+.modal-features li::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.modal-dismiss {
+  display: block;
+  margin-top: 10px;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11px;
+  background: transparent;
+  border: none;
+  width: 100%;
+}
+.modal-dismiss:hover { color: var(--text-muted); }
+
+/* ── Sliders ────────────────────────────────────────────────────────── */
+input[type=range] {
+  width: 100%;
+  height: 4px;
+  background: var(--line-strong);
+  border-radius: 2px;
+  appearance: none;
+  outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--panel);
+  cursor: pointer;
+}
+
+/* ── Tooltip ────────────────────────────────────────────────────────── */
+.tip {
+  position: fixed;
+  background: var(--text);
+  color: var(--bg);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 5px 9px;
+  border-radius: var(--r-1);
+  pointer-events: none;
+  z-index: var(--z-tooltip);
+  opacity: 0;
+  transition: opacity var(--t-fast);
+}
+.tip.show { opacity: 1; }
+
+/* ── Animation overlay ──────────────────────────────────────────────── */
+.anim-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-overlay);
+}
+.anim-overlay canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.anim-stage-label {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 28px;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity var(--t-slow);
+}
+.anim-stage-label.show { opacity: 1; }
