@@ -13,3 +13,6 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+
+# Claude Code agent-isolation worktrees (local scratch, not project state)
+.claude/worktrees/
