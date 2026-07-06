@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "arbor-static",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["--yes", "http-server", ".", "-p", "8765", "-c-1", "--silent"],
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": [".claude/serve.mjs"],
       "port": 8765
     }
   ]
