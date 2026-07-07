@@ -68,6 +68,17 @@ export function createCanvasController(canvasEl) {
   function w2s(x, y) { return { x: x * zoom + pan.x, y: y * zoom + pan.y }; }
   function s2w(sx, sy) { return { x: (sx - pan.x) / zoom, y: (sy - pan.y) / zoom }; }
 
+  // Zoom about the canvas centre (wheel zoom uses the cursor instead).
+  function zoomBy(factor) {
+    const rect = canvasEl.getBoundingClientRect();
+    const cx = rect.width / 2, cy = rect.height / 2;
+    const newZoom = Math.max(0.2, Math.min(3, zoom * factor));
+    pan.x = cx - (cx - pan.x) * (newZoom / zoom);
+    pan.y = cy - (cy - pan.y) * (newZoom / zoom);
+    zoom = newZoom;
+    draw();
+  }
+
   function pickNode(wx, wy) {
     if (!tree) return null;
     // Iterate in reverse so visually-top nodes win.
@@ -235,12 +246,13 @@ export function createCanvasController(canvasEl) {
 
   // === Public API ========================================================
   return {
-    setTree(t) {
+    setTree(t, opts = {}) {
       tree = t;
-      fitToContent();
+      if (opts.fit !== false) fitToContent();
       draw();
     },
     fitToContent,
+    zoomBy,
     getTree() { return tree; },
     setSelection(id) { selectedId = id; draw(); },
     getSelectedId() { return selectedId; },

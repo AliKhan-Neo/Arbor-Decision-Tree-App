@@ -119,7 +119,7 @@ export function drawNode(ctx, node, opts = {}) {
     ctx.stroke();
     // Inner glyph: a small diamond (◆) marking decision.
     ctx.fillStyle = p.accent;
-    ctx.font = '600 14px var(--display)';
+    ctx.font = '600 14px Syne, system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('◆', node.x, node.y - 8);
@@ -134,7 +134,7 @@ export function drawNode(ctx, node, opts = {}) {
     ctx.stroke();
     // Inner glyph: ◎ marking chance.
     ctx.fillStyle = p.accent;
-    ctx.font = '500 16px var(--display)';
+    ctx.font = '500 16px Syne, system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('◎', node.x, node.y - 4);

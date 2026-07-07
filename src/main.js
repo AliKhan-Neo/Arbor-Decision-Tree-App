@@ -19,9 +19,11 @@ import { createSettingsBox } from './ui/settingsBox.js';
 
 import { saveTree, loadTree } from './model/persistence.js';
 import {
-  defaultHydrogenTree, addNode, getNode, rootOf, childrenOf,
+  defaultHydrogenTree, addNode, getNode, rootOf, childrenOf, removeSubtree,
   fixed, tri
 } from './model/tree.js';
+import { createHistory } from './model/history.js';
+import { confirmDialog, toast } from './ui/dialogs.js';
 
 import { rollbackMean } from './sim/rollback.js';
 import { runMonteCarloChunked } from './sim/monteCarlo.js';
@@ -42,6 +44,20 @@ initTheme();
 let tree = loadTree() || defaultHydrogenTree();
 let lastResult = null;
 let isSimulating = false;
+
+// Undo/redo — snapshot after every mutation; rapid edits coalesce (500ms).
+const history = createHistory(60);
+history.init(tree);
+let histTimer = 0;
+function historyPushSoon() {
+  clearTimeout(histTimer);
+  histTimer = setTimeout(() => { history.push(tree); refreshUndoButtons(); }, 500);
+}
+function historyPushNow() {
+  clearTimeout(histTimer);
+  history.push(tree);
+  refreshUndoButtons();
+}
 
 // ── 1. Mount controllers ────────────────────────────────────────────────
 const canvasEl = document.getElementById('canvas');
@@ -68,6 +84,7 @@ const settingsBox = createSettingsBox(canvasWrap, {
   onChange: () => {
     persist();
     updateHeaderStats();
+    historyPushSoon();
   }
 });
 
@@ -89,6 +106,7 @@ const hoverPopover = createHoverPopover((type, ctx) => {
   inspector.setSelection(child.id);
   redraw();
   persist();
+  historyPushNow();
 });
 
 // Theme toggle — placed in the header, refreshes the canvas palette on change.
@@ -117,6 +135,7 @@ canvasCtl.on('hoverPlus', ({ node, screenX, screenY }) => {
 });
 canvasCtl.on('move', () => {
   persist();
+  historyPushSoon();
 });
 
 // ── 3. Header buttons ───────────────────────────────────────────────────
@@ -124,21 +143,18 @@ document.getElementById('btn-layout').addEventListener('click', () => {
   canvasCtl.autoLayout();
   redraw();
   persist();
+  historyPushNow();
 });
 
-document.getElementById('btn-new').addEventListener('click', () => {
-  if (!confirm('Replace the current tree with a new one?')) return;
-  tree = defaultHydrogenTree();
-  lastResult = null;
-  canvasCtl.clearTerminalEmvs();
-  canvasCtl.setTree(tree);
-  inspector.setTree(tree);
-  inspector.setSelection(null);
-  qaCheck.setTree(tree);
-  settingsBox.setTree(tree);
-  dashboard.clear();
-  recomputeBestPath();
-  persist();
+document.getElementById('btn-new').addEventListener('click', async () => {
+  const ok = await confirmDialog({
+    title: 'Start a <em>new</em> tree?',
+    body: 'This replaces the current canvas with the default Hydrogen tree. Ctrl+Z brings the current tree back.',
+    confirmText: 'New tree'
+  });
+  if (!ok) return;
+  applyTreeState(defaultHydrogenTree());
+  historyPushNow();
 });
 
 document.getElementById('btn-simulate').addEventListener('click', runSimulation);
@@ -157,11 +173,123 @@ document.getElementById('btn-export-svg').addEventListener('click', () => {
   exportSvg(tree, { bestPathIds: ids, terminalEmvs: lastResult?.terminalEmvs || null });
 });
 document.getElementById('btn-export-xlsx').addEventListener('click', async () => {
-  if (!rootOf(tree)) { alert('Add a root node first.'); return; }
+  if (!rootOf(tree)) { toast('Add a root node first', { type: 'warn' }); return; }
   await exportExcel(tree, {
     histogramCanvas: document.getElementById('dash-hist-canvas')
   });
 });
+
+// Export dropdown — the three export buttons live inside this menu.
+const exportWrap = document.getElementById('export-menu-wrap');
+const exportMenu = document.getElementById('export-menu');
+document.getElementById('btn-export').addEventListener('click', e => {
+  e.stopPropagation();
+  exportMenu.classList.toggle('open');
+});
+exportMenu.addEventListener('click', () => exportMenu.classList.remove('open'));
+document.addEventListener('click', e => {
+  if (!exportWrap.contains(e.target)) exportMenu.classList.remove('open');
+});
+
+// Zoom controls.
+document.getElementById('btn-zoom-in').addEventListener('click', () => canvasCtl.zoomBy(1.2));
+document.getElementById('btn-zoom-out').addEventListener('click', () => canvasCtl.zoomBy(1 / 1.2));
+document.getElementById('btn-zoom-fit').addEventListener('click', () => {
+  canvasCtl.fitToContent();
+  canvasCtl.draw();
+});
+
+// Undo / redo.
+const btnUndo = document.getElementById('btn-undo');
+const btnRedo = document.getElementById('btn-redo');
+btnUndo.addEventListener('click', doUndo);
+btnRedo.addEventListener('click', doRedo);
+
+function refreshUndoButtons() {
+  btnUndo.disabled = !history.canUndo();
+  btnRedo.disabled = !history.canRedo();
+}
+
+function doUndo() {
+  const t = history.undo();
+  if (t) applyTreeState(t, { fit: false });
+  refreshUndoButtons();
+}
+
+function doRedo() {
+  const t = history.redo();
+  if (t) applyTreeState(t, { fit: false });
+  refreshUndoButtons();
+}
+
+// Swap in a whole new tree state (undo/redo, new tree, later: sidebar load).
+function applyTreeState(newTree, opts = {}) {
+  tree = newTree;
+  lastResult = null;
+  canvasCtl.clearTerminalEmvs();
+  canvasCtl.setTree(tree, { fit: opts.fit !== false });
+  inspector.setTree(tree);
+  inspector.setSelection(null);
+  qaCheck.setTree(tree);
+  settingsBox.setTree(tree);
+  dashboard.clear();
+  recomputeBestPath();
+  updateHeaderStats();
+  persist();
+}
+
+// Keyboard shortcuts. Inactive while typing in a field.
+document.addEventListener('keydown', e => {
+  const el = document.activeElement;
+  const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ||
+                        el.tagName === 'SELECT' || el.isContentEditable);
+  if (typing) return;
+  const mod = e.ctrlKey || e.metaKey;
+  const k = e.key.toLowerCase();
+
+  if (mod && k === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); return; }
+  if (mod && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); doRedo(); return; }
+
+  if ((e.key === 'Delete' || e.key === 'Backspace') && canvasCtl.getSelectedId()) {
+    e.preventDefault();
+    deleteSelected();
+    return;
+  }
+
+  if (e.key.startsWith('Arrow') && canvasCtl.getSelectedId()) {
+    const n = getNode(tree, canvasCtl.getSelectedId());
+    if (!n) return;
+    e.preventDefault();
+    const step = e.shiftKey ? 2 : 14;
+    if (e.key === 'ArrowLeft')  n.x -= step;
+    if (e.key === 'ArrowRight') n.x += step;
+    if (e.key === 'ArrowUp')    n.y -= step;
+    if (e.key === 'ArrowDown')  n.y += step;
+    canvasCtl.draw();
+    persist();
+    historyPushSoon();
+  }
+});
+
+function deleteSelected() {
+  const id = canvasCtl.getSelectedId();
+  const node = id ? getNode(tree, id) : null;
+  if (!node) return;
+  const before = tree.nodes.length;
+  removeSubtree(tree, id);
+  const removed = before - tree.nodes.length;
+  inspector.setSelection(null);
+  canvasCtl.setSelection(null);
+  canvasCtl.clearTerminalEmvs();
+  lastResult = null;
+  redraw();
+  qaCheck.refresh();
+  persist();
+  historyPushNow();
+  toast(removed > 1
+    ? `Deleted node + ${removed - 1} descendant${removed > 2 ? 's' : ''} · Ctrl+Z to undo`
+    : 'Node deleted · Ctrl+Z to undo');
+}
 
 // ── 4. Initial render ───────────────────────────────────────────────────
 inspector.setTree(tree);
@@ -196,6 +324,13 @@ function onInspectorChange(evt) {
   qaCheck.refresh();
   if (!evt.noRedrawInspector) inspector.refresh();
   persist();
+  // Structural edits snapshot immediately; typing/param tweaks coalesce.
+  if (evt.kind === 'delete' || evt.kind === 'addChild' || evt.kind === 'type' ||
+      evt.kind === 'distMode' || evt.kind === 'distType') {
+    historyPushNow();
+  } else {
+    historyPushSoon();
+  }
 }
 
 function redraw() {
@@ -285,7 +420,7 @@ function persist() {
 // ── 6. Simulation ───────────────────────────────────────────────────────
 async function runSimulation() {
   if (isSimulating) return;
-  if (!rootOf(tree)) { alert('Add a root node first.'); return; }
+  if (!rootOf(tree)) { toast('Add a root node first', { type: 'warn' }); return; }
   isSimulating = true;
 
   // Clear any prior post-sim state so the canvas reflects pristine entry.
