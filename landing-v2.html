@@ -384,9 +384,17 @@ footer{
   nav{padding:0 20px}
   .nav-links li.hide-m{display:none}
   section{padding:80px 24px}
-  .hero{padding:100px 24px 48px}
-  .hero-content{margin-left:0}
-  #hero-sim{opacity:0.4}
+  .hero{padding:100px 16px 48px}
+  .hero-content{
+    margin-left:0;
+    background:color-mix(in srgb, var(--lp-hero-bg) 78%, transparent);
+    backdrop-filter:blur(7px);
+    -webkit-backdrop-filter:blur(7px);
+    border:1px solid var(--line);
+    border-radius:var(--r-3);
+    padding:28px 22px;
+  }
+  #hero-sim{opacity:0.55}
   .hero-stats{gap:28px;flex-wrap:wrap}
   .pricing-grid{grid-template-columns:1fr}
   .use-grid{grid-template-columns:1fr}
