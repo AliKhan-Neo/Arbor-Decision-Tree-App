@@ -581,19 +581,23 @@ async function runSimulation(opts = {}) {
   pillText.textContent = 'Running simulation';
   pillFill.style.width = '0%';
 
-  // Path stream — appended to by MC progress, drained by the animation.
+  // Path + EV streams — appended to by MC progress, drained by the animation.
   const livePathStream = [];
+  let liveEvs = null;
+  let liveCount = 0;
 
   // Kick off MC. We hold the promise so the animation can await it.
   const mcPromise = runMonteCarloChunked(tree, {
     seed: tree.meta.seed,
     iterations: tree.meta.iterations,
-    onProgress: ({ iterations, total, pathStream }) => {
+    onProgress: ({ iterations, total, evs, pathStream }) => {
       // pathStream is the SAME array MC pushes into, so livePathStream just
       // tracks its tail. For now copy newly-arrived paths in.
       while (livePathStream.length < pathStream.length) {
         livePathStream.push(pathStream[livePathStream.length]);
       }
+      liveEvs = evs;
+      liveCount = iterations;
       const pct = total ? Math.round(iterations / total * 100) : 0;
       pillText.textContent = `Running simulation · ${pct}%`;
       pillFill.style.width = pct + '%';
@@ -607,6 +611,9 @@ async function runSimulation(opts = {}) {
   let mcResult = null;
   const animPromise = animation.play({
     getPathStream:   () => livePathStream,
+    getEvSamples:    () => ({ evs: liveEvs, count: liveCount }),
+    totalIterations: tree.meta.iterations,
+    currency:        tree.meta.currency,
     getBestPath:     () => mcResult
                             ? pathIdsFromLabels(mcResult.stability[0]?.path.split(' → ') || [])
                             : bestPathFromMean(tree),

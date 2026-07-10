@@ -636,6 +636,27 @@ input[type=range]::-webkit-slider-thumb {
   transition: opacity var(--t-slow);
 }
 .anim-stage-label.show { opacity: 1; }
+.anim-skip {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  color: var(--text-muted);
+  font: 500 11px var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 7px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--t-norm), color var(--t-fast), border-color var(--t-fast);
+}
+.anim-skip.show { opacity: 1; pointer-events: auto; }
+.anim-skip:hover { color: var(--accent); border-color: var(--accent); }
 
 /* ── Confirm dialog ─────────────────────────────────────────────────── */
 .modal.dialog { max-width: 400px; }
