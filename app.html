@@ -54,6 +54,20 @@
 
   <!-- MAIN -->
   <div class="app-main">
+    <aside class="sidebar" id="sidebar">
+      <button class="rail-toggle sidebar-rail-toggle" id="sidebar-toggle" type="button" aria-label="Toggle analyses panel">
+        <span class="toggle-text">‹</span>
+      </button>
+      <div class="sidebar-header">
+        <div>
+          <div class="sidebar-title">Analyses</div>
+          <div class="sidebar-sub">Saved decisions</div>
+        </div>
+        <button class="btn sidebar-new" id="btn-analysis-new" type="button">+ New</button>
+      </div>
+      <div class="sidebar-list" id="sidebar-list"></div>
+    </aside>
+
     <div class="canvas-wrap" id="canvas-wrap">
       <canvas id="canvas"></canvas>
 

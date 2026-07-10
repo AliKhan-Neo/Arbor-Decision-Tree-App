@@ -96,13 +96,150 @@ body {
 /* ── Main row ───────────────────────────────────────────────────────── */
 .app-main {
   display: grid;
-  grid-template-columns: 1fr var(--inspector-w);
+  grid-template-columns: var(--sidebar-w, 224px) 1fr var(--inspector-w);
   overflow: hidden;
   position: relative;
 }
-/* When inspector is collapsed, shrink its column to the rail size. */
+/* Collapse combinations — each collapsed panel drops to the rail size. */
 .app-main:has(.inspector.collapsed) {
-  grid-template-columns: 1fr var(--rail-size, 32px);
+  grid-template-columns: var(--sidebar-w, 224px) 1fr var(--rail-size, 32px);
+}
+.app-main:has(.sidebar.collapsed) {
+  grid-template-columns: var(--rail-size, 32px) 1fr var(--inspector-w);
+}
+.app-main:has(.sidebar.collapsed):has(.inspector.collapsed) {
+  grid-template-columns: var(--rail-size, 32px) 1fr var(--rail-size, 32px);
+}
+
+/* ── Sidebar (saved analyses) ───────────────────────────────────────── */
+.sidebar {
+  position: relative;
+  background: var(--inspector);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar.collapsed .sidebar-header,
+.sidebar.collapsed .sidebar-list { display: none; }
+.sidebar.collapsed #sidebar-toggle {
+  writing-mode: vertical-rl;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+}
+.sidebar.collapsed #sidebar-toggle::after { content: '  Analyses  ›'; }
+.sidebar.collapsed #sidebar-toggle .toggle-text { display: none; }
+.sidebar-rail-toggle {
+  top: 8px;
+  right: 8px;
+  height: 24px;
+  padding: 0 8px;
+}
+.sidebar-header {
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sidebar-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.sidebar-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+.sidebar-new {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 10px;
+  margin-right: 26px;
+}
+.sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 10px 20px;
+}
+.sidebar-list::-webkit-scrollbar { width: 4px; }
+.sidebar-list::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 2px; }
+
+.sa-item {
+  position: relative;
+  padding: 10px 12px;
+  border-radius: var(--r-2);
+  border: 1px solid transparent;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+.sa-item:hover { background: var(--panel); }
+.sa-item.active { background: var(--panel); border-color: var(--line-strong); }
+.sa-title {
+  font: 600 12.5px var(--sans);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 58px;
+}
+.sa-title-input {
+  width: 100%;
+  font: 600 12.5px var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--accent-soft);
+  border-radius: 3px;
+  padding: 2px 5px;
+  outline: none;
+}
+.sa-meta {
+  font: 400 10px var(--mono);
+  color: var(--text-faint);
+  margin-top: 3px;
+  letter-spacing: 0.04em;
+}
+.sa-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: none;
+  gap: 3px;
+}
+.sa-item:hover .sa-actions { display: flex; }
+.sa-act {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-1);
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.sa-act:hover { color: var(--accent); border-color: var(--accent); }
+.sa-act.danger:hover { color: var(--rust); border-color: var(--rust); }
+.sa-empty {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--text-faint);
+  text-align: center;
+  padding: 24px 8px;
 }
 
 .canvas-wrap {

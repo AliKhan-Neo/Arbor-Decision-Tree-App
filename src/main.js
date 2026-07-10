@@ -18,7 +18,12 @@ import { createQaChecker } from './ui/qaCheck.js';
 import { createSettingsBox } from './ui/settingsBox.js';
 import { createCustomisation } from './ui/customisation.js';
 
-import { saveTree, loadTree } from './model/persistence.js';
+import {
+  saveTree, loadTree,
+  listAnalyses, loadAnalysis, saveAnalysis, deleteAnalysis,
+  newAnalysisId, getActiveAnalysisId, setActiveAnalysisId
+} from './model/persistence.js';
+import { createSidebar } from './ui/sidebar.js';
 import {
   defaultHydrogenTree, addNode, getNode, rootOf, childrenOf, removeSubtree,
   fixed, tri
@@ -42,7 +47,16 @@ const fmt = (v, cur = '$') => {
 // ── 0. Theme + state ────────────────────────────────────────────────────
 initTheme();
 
-let tree = loadTree() || defaultHydrogenTree();
+// Resolve the active analysis. Existing single-tree installs migrate into
+// the registry on first load.
+let activeAnalysisId = getActiveAnalysisId();
+let tree = activeAnalysisId ? loadAnalysis(activeAnalysisId) : null;
+if (!tree) {
+  tree = loadTree() || defaultHydrogenTree();
+  activeAnalysisId = newAnalysisId();
+  setActiveAnalysisId(activeAnalysisId);
+  saveAnalysis(activeAnalysisId, tree);
+}
 let lastResult = null;
 let isSimulating = false;
 
@@ -97,6 +111,101 @@ const customisation = createCustomisation(canvasWrap, {
     if (evt.structural) historyPushNow(); else historyPushSoon();
   }
 });
+
+const sidebar = createSidebar(document.getElementById('sidebar'), {
+  onToggle: () => {
+    canvasCtl.resize();
+    if (lastResult) dashboard.render(lastResult, tree.meta.currency);
+  },
+  onOpen: openAnalysis,
+  onNew: newAnalysis,
+  onRename: renameAnalysis,
+  onDuplicate: duplicateAnalysis,
+  onDelete: removeAnalysis
+});
+
+async function openAnalysis(id) {
+  if (id === activeAnalysisId || isSimulating) return;
+  const wasSimulated = listAnalyses().find(a => a.id === id)?.simulated;
+  const t = loadAnalysis(id);
+  if (!t) { toast('Could not load that analysis', { type: 'err' }); return; }
+  if (activeAnalysisId) saveAnalysis(activeAnalysisId, tree, { simulated: !!lastResult });
+  activeAnalysisId = id;
+  setActiveAnalysisId(id);
+  applyTreeState(t);
+  history.init(t);
+  refreshUndoButtons();
+  // Seeded engine: re-running reproduces the stored results byte-for-byte,
+  // so simulated analyses reopen with their dashboard already populated.
+  if (wasSimulated) await runSimulation({ animate: false });
+}
+
+function newAnalysis() {
+  if (listAnalyses().length >= 3) { proModal.show('save'); return; }
+  saveAnalysis(activeAnalysisId, tree, { simulated: !!lastResult });
+  const t = defaultHydrogenTree();
+  t.meta.title = 'Untitled decision';
+  activeAnalysisId = newAnalysisId();
+  setActiveAnalysisId(activeAnalysisId);
+  applyTreeState(t);
+  history.init(t);
+  refreshUndoButtons();
+}
+
+function renameAnalysis(id, title) {
+  if (id === activeAnalysisId) {
+    tree.meta.title = title;
+    persist();
+    historyPushSoon();
+    return;
+  }
+  const t = loadAnalysis(id);
+  if (!t) return;
+  t.meta.title = title;
+  saveAnalysis(id, t);
+  sidebar.refresh(listAnalyses(), activeAnalysisId);
+}
+
+function duplicateAnalysis(id) {
+  if (listAnalyses().length >= 3) { proModal.show('save'); return; }
+  const t = id === activeAnalysisId ? JSON.parse(JSON.stringify(tree)) : loadAnalysis(id);
+  if (!t) return;
+  t.meta.title = (t.meta.title || 'Untitled decision') + ' (copy)';
+  const dupId = newAnalysisId();
+  saveAnalysis(dupId, t);
+  sidebar.refresh(listAnalyses(), activeAnalysisId);
+  toast('Analysis duplicated');
+}
+
+async function removeAnalysis(id) {
+  const entry = listAnalyses().find(a => a.id === id);
+  const ok = await confirmDialog({
+    title: 'Delete <em>analysis</em>?',
+    body: `“${entry?.title || 'Untitled decision'}” will be permanently removed.`,
+    confirmText: 'Delete',
+    danger: true
+  });
+  if (!ok) return;
+  deleteAnalysis(id);
+  if (id === activeAnalysisId) {
+    const remaining = listAnalyses();
+    if (remaining.length) {
+      activeAnalysisId = null;   // force openAnalysis to treat it as a switch
+      await openAnalysis(remaining[0].id);
+    } else {
+      const t = defaultHydrogenTree();
+      t.meta.title = 'Untitled decision';
+      activeAnalysisId = newAnalysisId();
+      setActiveAnalysisId(activeAnalysisId);
+      applyTreeState(t);
+      history.init(t);
+      refreshUndoButtons();
+    }
+  } else {
+    sidebar.refresh(listAnalyses(), activeAnalysisId);
+  }
+  toast('Analysis deleted');
+}
 
 const hoverPopover = createHoverPopover((type, ctx) => {
   // Add a child of the selected type next to the parent.
@@ -311,6 +420,7 @@ inspector.setTree(tree);
 qaCheck.setTree(tree);
 settingsBox.setTree(tree);
 customisation.setTree(tree);
+sidebar.refresh(listAnalyses(), activeAnalysisId);
 // Defer the canvas-size-dependent setup to the next frame so the browser has
 // completed layout (otherwise getBoundingClientRect() can return 0 on first
 // paint and fit-to-content sets zoom to 0 — empty canvas).
@@ -433,13 +543,29 @@ function updateHeaderStats() {
 
 function persist() {
   saveTree(tree);
+  saveAnalysis(activeAnalysisId, tree, { simulated: !!lastResult });
+  sidebar.refresh(listAnalyses(), activeAnalysisId);
 }
 
 // ── 6. Simulation ───────────────────────────────────────────────────────
-async function runSimulation() {
+async function runSimulation(opts = {}) {
+  const animate = !(opts && opts.animate === false);
   if (isSimulating) return;
   if (!rootOf(tree)) { toast('Add a root node first', { type: 'warn' }); return; }
   isSimulating = true;
+
+  // Silent mode — used when reopening a simulated analysis: the seeded
+  // engine reproduces the stored results exactly, no ceremony.
+  if (!animate) {
+    const result = await runMonteCarloChunked(tree, {
+      seed: tree.meta.seed,
+      iterations: tree.meta.iterations,
+      onProgress: () => {}
+    });
+    applySimResult(result);
+    isSimulating = false;
+    return;
+  }
 
   // Clear any prior post-sim state so the canvas reflects pristine entry.
   canvasCtl.clearTerminalEmvs();
@@ -489,20 +615,7 @@ async function runSimulation() {
   });
 
   const [result] = await Promise.all([mcPromise, animPromise]);
-
-  // Recompute best-path from MC stability (most-frequent optimal path).
-  const topPath = result.stability[0];
-  if (topPath) {
-    const ids = pathIdsFromLabels(topPath.path.split(' → '));
-    canvasCtl.setBestPath(ids);
-  }
-  canvasCtl.setTerminalEmvs(result.terminalEmvs);
-
-  lastResult = result;
-  dashboard.render(result, tree.meta.currency);
-  dashboardEl.classList.remove('collapsed');
-  localStorage.setItem('arbor:panel:dashboard:closed', '0');
-  updateHeaderStats();
+  applySimResult(result);
 
   // Switch the pill to its "finished" state, then fade out + un-dim panels.
   pill.classList.add('finished');
@@ -514,6 +627,23 @@ async function runSimulation() {
   }, 1100);
 
   isSimulating = false;
+}
+
+// Shared post-simulation tail — best path, terminal EMVs, dashboard, and
+// persistence (records the analysis as simulated for reopen-reruns).
+function applySimResult(result) {
+  const topPath = result.stability[0];
+  if (topPath) {
+    const ids = pathIdsFromLabels(topPath.path.split(' → '));
+    canvasCtl.setBestPath(ids);
+  }
+  canvasCtl.setTerminalEmvs(result.terminalEmvs);
+  lastResult = result;
+  dashboard.render(result, tree.meta.currency);
+  dashboardEl.classList.remove('collapsed');
+  localStorage.setItem('arbor:panel:dashboard:closed', '0');
+  updateHeaderStats();
+  persist();
 }
 
 // Map an optimalPath (branch labels) into node ids by walking the tree from
