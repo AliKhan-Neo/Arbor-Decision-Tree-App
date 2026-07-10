@@ -16,6 +16,7 @@ import { initTheme, mountThemeToggle } from './ui/themeToggle.js';
 import { initPanels } from './ui/panels.js';
 import { createQaChecker } from './ui/qaCheck.js';
 import { createSettingsBox } from './ui/settingsBox.js';
+import { createCustomisation } from './ui/customisation.js';
 
 import { saveTree, loadTree } from './model/persistence.js';
 import {
@@ -78,6 +79,7 @@ const qaCheck = createQaChecker(canvasWrap, {
   onFocusNode: id => {
     canvasCtl.setSelection(id);
     inspector.setSelection(id);
+    customisation.setSelection(id);
   }
 });
 const settingsBox = createSettingsBox(canvasWrap, {
@@ -85,6 +87,14 @@ const settingsBox = createSettingsBox(canvasWrap, {
     persist();
     updateHeaderStats();
     historyPushSoon();
+  }
+});
+const customisation = createCustomisation(canvasWrap, {
+  getNodeById: id => getNode(tree, id),
+  onChange: evt => {
+    redraw();
+    persist();
+    if (evt.structural) historyPushNow(); else historyPushSoon();
   }
 });
 
@@ -104,6 +114,7 @@ const hoverPopover = createHoverPopover((type, ctx) => {
   });
   canvasCtl.setSelection(child.id);
   inspector.setSelection(child.id);
+  customisation.setSelection(child.id);
   redraw();
   persist();
   historyPushNow();
@@ -126,9 +137,11 @@ initPanels({
 // ── 2. Wire canvas → inspector ──────────────────────────────────────────
 canvasCtl.on('select', ({ node }) => {
   inspector.setSelection(node.id);
+  customisation.setSelection(node.id);
 });
 canvasCtl.on('background', () => {
   inspector.setSelection(null);
+  customisation.setSelection(null);
 });
 canvasCtl.on('hoverPlus', ({ node, screenX, screenY }) => {
   hoverPopover.show(screenX, screenY, { node });
@@ -232,6 +245,8 @@ function applyTreeState(newTree, opts = {}) {
   inspector.setSelection(null);
   qaCheck.setTree(tree);
   settingsBox.setTree(tree);
+  customisation.setTree(tree);
+  customisation.setSelection(null);
   dashboard.clear();
   recomputeBestPath();
   updateHeaderStats();
@@ -295,6 +310,7 @@ function deleteSelected() {
 inspector.setTree(tree);
 qaCheck.setTree(tree);
 settingsBox.setTree(tree);
+customisation.setTree(tree);
 // Defer the canvas-size-dependent setup to the next frame so the browser has
 // completed layout (otherwise getBoundingClientRect() can return 0 on first
 // paint and fit-to-content sets zoom to 0 — empty canvas).
@@ -311,9 +327,11 @@ function onInspectorChange(evt) {
   if (evt.kind === 'delete') {
     inspector.setSelection(null);
     canvasCtl.setSelection(null);
+    customisation.setSelection(null);
   } else if (evt.kind === 'addChild' && evt.newNodeId) {
     canvasCtl.setSelection(evt.newNodeId);
     inspector.setSelection(evt.newNodeId);
+    customisation.setSelection(evt.newNodeId);
   }
   // Any structural / param edit invalidates last simulation's EMVs.
   if (evt.kind !== 'label' && evt.kind !== 'branchLabel') {

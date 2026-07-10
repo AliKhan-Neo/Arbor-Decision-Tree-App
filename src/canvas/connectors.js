@@ -16,7 +16,14 @@ export function drawConnector(ctx, parent, child, opts = {}) {
   ctx.lineWidth   = best ? 2.4 : 1.2;
   ctx.beginPath();
   ctx.moveTo(from.x, from.y);
-  ctx.bezierCurveTo(midX, from.y, midX, to.y, to.x, to.y);
+  if (opts.style === 'elbow') {
+    // Right-angle step routing: horizontal → vertical → horizontal.
+    ctx.lineTo(midX, from.y);
+    ctx.lineTo(midX, to.y);
+    ctx.lineTo(to.x, to.y);
+  } else {
+    ctx.bezierCurveTo(midX, from.y, midX, to.y, to.x, to.y);
+  }
   ctx.stroke();
 
   // Branch label + probability annotation on the midpoint.

@@ -172,6 +172,7 @@ async function converge(ctx, rect, bestPath, getNodeById, ctl) {
 
 function drawPath(ctx, pathIds, ctl, getNodeById) {
   if (!pathIds || pathIds.length < 2) return;
+  const elbow = ctl.getTree()?.meta?.connectorStyle === 'elbow';
   ctx.beginPath();
   for (let i = 0; i < pathIds.length - 1; i++) {
     const a = getNodeById(pathIds[i]);
@@ -181,7 +182,13 @@ function drawPath(ctx, pathIds, ctl, getNodeById) {
     const sb = ctl.w2s(b.x, b.y);
     const midX = (sa.x + sb.x) / 2;
     if (i === 0) ctx.moveTo(sa.x, sa.y);
-    ctx.bezierCurveTo(midX, sa.y, midX, sb.y, sb.x, sb.y);
+    if (elbow) {
+      ctx.lineTo(midX, sa.y);
+      ctx.lineTo(midX, sb.y);
+      ctx.lineTo(sb.x, sb.y);
+    } else {
+      ctx.bezierCurveTo(midX, sa.y, midX, sb.y, sb.x, sb.y);
+    }
   }
   ctx.stroke();
 }

@@ -229,7 +229,10 @@ export function createCanvasController(canvasEl) {
       const parent = tree.nodes.find(n => n.id === child.parentId);
       if (!parent) continue;
       const isBest = bestPathIds.has(parent.id) && bestPathIds.has(child.id);
-      drawConnector(ctx, parent, child, { best: isBest });
+      drawConnector(ctx, parent, child, {
+        best: isBest,
+        style: tree.meta?.connectorStyle || 'bezier'
+      });
     }
 
     // Nodes on top.

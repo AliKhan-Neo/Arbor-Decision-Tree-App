@@ -749,3 +749,91 @@ input[type=range]::-webkit-slider-thumb {
 /* ── Header icon buttons + disabled state ───────────────────────────── */
 .btn-icon { padding: 0 10px; font-size: 15px; }
 .btn[disabled] { opacity: 0.35; pointer-events: none; }
+
+/* ── Customisation pill + panel (below QA/QC) ───────────────────────── */
+.custom-root {
+  position: absolute;
+  top: 52px;
+  left: 14px;
+  z-index: var(--z-overlay);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.custom-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.custom-pill:hover { color: var(--accent); border-color: var(--accent); }
+.custom-glyph { color: var(--accent); font-size: 12px; }
+.custom-panel {
+  margin-top: 8px;
+  width: 232px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-3);
+  box-shadow: var(--shadow-popover);
+  padding: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.cz-section {
+  font: 600 10px var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 12px 0 8px;
+}
+.cz-section:first-child { margin-top: 0; }
+.cz-seg button { flex: 1; }
+.cz-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.cz-label { font: 500 12px var(--sans); color: var(--text-muted); }
+.cz-color {
+  width: 64px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-1);
+  background: transparent;
+  cursor: pointer;
+}
+.cz-btn {
+  width: 100%;
+  margin: 4px 0 2px;
+  padding: 8px 10px;
+  font: 600 11px var(--sans);
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+  cursor: pointer;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.cz-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cz-link {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font: 500 11px var(--sans);
+  padding: 6px 0 0;
+  cursor: pointer;
+  text-align: center;
+}
+.cz-link:hover { color: var(--text-muted); }
+.cz-hint { font: 400 12px var(--sans); color: var(--text-faint); margin-bottom: 6px; }

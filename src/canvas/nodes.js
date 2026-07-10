@@ -109,9 +109,12 @@ export function drawNode(ctx, node, opts = {}) {
     ctx.shadowBlur = 16;
   }
 
-  ctx.fillStyle = p.nodeFill;
-  ctx.strokeStyle = isSel ? p.nodeStrokeSel : (isBest ? p.nodeStrokeBest : p.nodeStroke);
-  ctx.lineWidth = isSel ? 2.0 : (isBest ? 1.6 : 1.0);
+  // Per-node colour overrides (node.style — user data, travels with the
+  // tree JSON). Selection/best-path strokes are status indicators and win.
+  ctx.fillStyle = node.style?.fill || p.nodeFill;
+  ctx.strokeStyle = isSel ? p.nodeStrokeSel
+                  : (isBest ? p.nodeStrokeBest : (node.style?.stroke || p.nodeStroke));
+  ctx.lineWidth = isSel ? 2.0 : (isBest ? 1.6 : (node.style?.stroke ? 1.4 : 1.0));
 
   if (node.type === 'decision') {
     rrectPath(ctx, node.x - DEC.w / 2, node.y - DEC.h / 2, DEC.w, DEC.h, DEC.r);

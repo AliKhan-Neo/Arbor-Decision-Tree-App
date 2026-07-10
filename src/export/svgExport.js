@@ -115,9 +115,12 @@ function edgeMarkup(parent, child, isBest, hero, line, panel, textMuted, accent,
               fill="${isBest ? hero : textMuted}">${escText(text)}</text>
       </g>`;
   }
+  const elbow = tree.meta?.connectorStyle === 'elbow';
+  const d = elbow
+    ? `M ${from.x} ${from.y} L ${midX} ${from.y} L ${midX} ${to.y} L ${to.x} ${to.y}`
+    : `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`;
   return `
-    <path d="M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}"
-          fill="none" stroke="${stroke}" stroke-width="${width}"/>
+    <path d="${d}" fill="none" stroke="${stroke}" stroke-width="${width}"/>
     ${labelSvg}`;
 }
 
@@ -128,8 +131,11 @@ function nodePort(node, side) {
 }
 
 function nodeMarkup(n, ctx) {
-  const stroke = ctx.best ? ctx.hero : ctx.nodeStroke;
-  const sw = ctx.best ? 1.6 : 1.0;
+  // Honour per-node colour overrides (node.style) like the canvas does.
+  const fill = n.style?.fill || ctx.nodeFill;
+  const stroke = ctx.best ? ctx.hero : (n.style?.stroke || ctx.nodeStroke);
+  const sw = ctx.best ? 1.6 : (n.style?.stroke ? 1.4 : 1.0);
+  ctx = { ...ctx, nodeFill: fill };
   if (n.type === 'decision') {
     return `
       <g>
